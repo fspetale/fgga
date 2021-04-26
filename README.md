@@ -10,17 +10,19 @@ FGGA is a graph-based machine learning approach for the automated and consistent
 
 # INSTALLATION
 
-The fgga R source package can be directly downloaded from [Bioconductor repository](https://bioconductor.org/) or [GitHub repository](https://github.com/fspetale/fgga). 
-This R package contains a experimental dataset as example, one pre-run R object and all functions needed to run FGGA.
+The fgga R source package can be directly downloaded from [Bioconductor repository](https://bioconductor.org/) or [GitHub repository](https://github.com/fspetale/fgga). This R package contains a experimental dataset as example, one pre-run R object and all functions needed to run FGGA.
 
 \## From Bioconductor repository
+
 if (!requireNamespace("BiocManager", quietly = TRUE)) {
       install.packages("BiocManager")}
       
 BiocManager::install("fgga")
 
 \## Or from GitHub repository using devtools
+
 BiocManager::install("devtools")
+
 devtools::install_github("fspetale/fgga")
 
 # REFERENCES
