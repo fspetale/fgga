@@ -1,7 +1,7 @@
 Package: fgga
 Type: Package
 Title: Hierarchical ensemble method based on factor graph
-Version: 0.1.0
+Version: 0.99.0
 Date: 2021-04-13
 Author: Flavio E. Spetale and Elizabeth Tapia. Bio-Agroinformatic Group. CIFASIS-Conicet-UNR. Rosario. Argentina.
 Maintainer: Flavio E. Spetale <spetalef@cifasis-conicet.gov.ar>
