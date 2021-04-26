@@ -1,11 +1,13 @@
 ----------
 # fgga
-----------
+
 # R package
-----------
+
 # FGGA: Factor Graph Gene ontology Annotation
----------
+----------
+
 FGGA is a graph-based machine learning approach for the automated and consistent GO annotation of protein coding genes. The input is a set of GO-term annotated protein coding genes previously characterized in terms of a fixed number of user-defined features, including the presence/absence of PFAM domains, physical-chemical properties, presence of signal peptides, among others. The set of GO-terms defines the output GO subgraph. A hierarchical ensemble (SVMs) machine learning model is generated. This model can be used to predict the GO subgraph annotations of uncharacterized protein coding genes. Individual GO-term annotations are accompanied by maximum a posteriori probability estimates issued by the native message passing algorithm of factor graphs.
+
 --------------
 # INSTALLATION
 -------------
