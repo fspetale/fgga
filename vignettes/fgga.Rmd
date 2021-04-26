@@ -1,0 +1,333 @@
+---
+title: "FGGA"
+subtitle: "Factor Graph GO Annotation"
+author:
+- name: F.E. Spetale
+  affiliation: 
+  - &id Bioinformatics Group. CIFASIS-UNR-CONICET. Rosario (Argentina)
+  email: spetale@cifasis-conicet.gov.ar
+- name: J. Murillo
+  affiliation: *id
+- name: E. Tapia
+  affiliation: *id
+date: "`r Sys.Date()`"
+output:
+    BiocStyle::html_document:
+      toc_float: true
+      
+abstract: We present a tutorial to use **FGGA**, a hierarchical ensemble method that exploits the ability of factor graphs for modeling logical and statistical constraints over system variables. The **FGGA model** is built in two main steps. In the first step, a core Factor Graph (FG) modeling hidden GO-term predictions and relationships is created. In the second step, the FG is enriched with nodes modeling observable GO-term predictions issued by **binary SVM classifiers**. In addition, probabilistic constraints modeling learning gaps between hidden and observable GO-term predictions are introduced. These gaps are assumed to be independent among GO-terms, locally additive with respect to observed predictions, and zero-mean Gaussian. **FGGA predictions** are issued by the native iterative **message passing algorithm** of factor graphs.    
+---     
+<!--
+%\VignetteEngine{knitr::rmarkdown}
+%\VignetteIndexEntry{fgga}
+\usepackage[utf8]{inputenc}
+-->
+
+```{r pre,echo=FALSE,results='hide',warning=TRUE,include=FALSE}
+library(knitr)
+opts_chunk$set(warning=TRUE, message = FALSE, cache = FALSE, fig.path = "figures/", tidy = FALSE, tidy.opts = list(width.cutoff = 60))
+```
+---
+
+# Automated Gene Ontology (GO) annotation methods
+
+As volume of genomic data grows, computational methods become essential for providing a first glimpse onto gene annotations. Automated Gene Ontology (GO) annotation methods based on hierarchical ensemble classification techniques are particularly interesting when interpretability of annotation results is a main concern. In these methods, raw GO-term predictions computed by base binary classifiers are leveraged by checking the consistency of predefined GO relationships. FGGA is a factor graph approach to the hierarchical ensemble formulation of the automated GO annotation problem. In this formal method, a core factor graph is first built based on the GO structure and then enriched to take into account the noisy nature of GO-term predictions. Hence, starting from raw GO-term predictions, an iterative message passing algorithm between nodes of the factor graph is used to compute marginal probabilities of target GO-terms. 
+
+The method is detailed in the original [publications](#references) [1, 2], but this brief **vignette** explains how to use **FGGA** to predict a set of GO-terms (GO node labels) from gene-product sequences of a given organism. The aim is to improve the quality of existing electronic annotations and provide a new annotation for those unknown sequences that can not be classified by traditional methods such as Blast.
+
+Thus, **FGGA** is a tool to the automated annotation of protein sequences, however, the annotation of other types of striking functional gene products is also possible, e.g., long non-coding RNAs. FGGA may bring an opportunity for improving the annotation of long non-coding RNA sequences through boosting the confidence of base binary classifiers by the characterization of their structures primary, secondary and tertiary. Along the vignette, we used protein coding genes data from Cannis familiaris organism obtained with  [UniProt](https://www.uniprot.org/uniprot/?query=taxonomy:9615).
+
+![Fig. 1 - Workflow of FGGA algorithm.](figures/framework.png)
+
+# Installation
+
+The **fgga** R source package can be downloaded from **[Bioconductor repository](https://bioconductor.org/)** or **[GitHub repository](https://github.com/fspetale/fgga)**. This R package contains a experimental dataset as example, one pre-run R object and all functions needed to run FGGA.
+
+```{r, message = FALSE, eval = FALSE}
+## From Bioconductor repository
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+      install.packages("BiocManager")
+  }
+BiocManager::install("fgga")
+
+## Or from GitHub repository using devtools
+BiocManager::install("devtools")
+devtools::install_github("fspetale/fgga")
+```
+
+
+# Input data
+
+At present, the method directly supports data characterized from gene product sequences. This characterization can be generated according to the expert's criteria. For example, possible characterizations can be: [PFAM motifs](https://pfam.xfam.org/), [physico-chemical properties](https://web.expasy.org/protparam/), [signal peptides](http://www.cbs.dtu.dk/services/), among others. The admitted values can be of the numeric, boolean or character type. However, for greater efficiency of the binary classification algorithm it is recommended that the use of normalized numerical values. These datasets must have at least 50 annotations per GO-term to train the FGGA model.
+
+# An example of the usage of FGGA for the automated GO annotation
+
+In this section, we apply **FGGA** to predict the biological functions, GO-terms, of *Canis lupus familiaris* proteins. We download 6962 *Canis lupus familiaris*, Cf, protein sequences with their GO annotations from [UniProt](https://www.uniprot.org/uniprot/?query=taxonomy:9615) and then were characterized through physico-chemical properties from R package [Peptides](https://cran.r-project.org/web/packages/Peptides).
+
+## Data Loading
+
+Let us load the fgga package and import the toy dataset in the workspace:
+```{r, message = FALSE, eval = TRUE}
+## Let us load the R package
+library(fgga)
+
+# Loading Canis lupus familiaris dataset and example R objects
+data(CfData)
+
+```
+
+```{r, message = FALSE, eval = TRUE}
+# To see the summarized experiment object
+summary(CfData)
+
+# To see the information of characterized data
+dim(CfData$dxCf)
+
+colnames(CfData$dxCf)[1:20]
+
+rownames(CfData$dxCf)[1:10]
+
+head.matrix(CfData$dxCf[, 51:61], n = 10)
+
+# to see the information of GO data
+dim(CfData$tableCfGO)
+
+colnames(CfData$tableCfGO)[1:10]
+
+rownames(CfData$tableCfGO)[1:10]
+
+head(CfData$tableCfGO)[, 1:8]
+```
+*tableCfGO* is a binary matrix whose $(i, j)_{th}$ component is 1 if protein $i$ is annotated with $GO-term_j$, 0 otherwise. Note that the row names of both dxCf and tableCfGO are identical. Our binary classifiers require at least 50 annotations per GO-terms. Therefore, this condition is checked and those GO-terms that do not comply are eliminated.
+
+```{r, message = FALSE, eval = TRUE}
+# Checking the amount of annotations by GO-term
+
+apply(CfData$tableCfGO, MARGIN=2, sum)
+```
+
+## GO subgraph building
+
+If we want to predict GO-terms in a single subdomain, *BP, MF or CC* , we must build the GO-DAG associated with these GO-terms.
+
+```{r, message = FALSE, eval = FALSE}
+library(GO.db)
+library(GOstats)
+
+mygraph <- GOGraph(CfData$nodesGO, GOMFPARENTS)
+
+# Delete root node called all
+mygraph <- subGraph(CfData$nodesGO, mygraph)
+
+# We adapt the graph to the format used by FGGA
+mygraph <- t(as(mygraph, "matrix"))
+mygraphGO <- as(mygraph, "graphNEL")
+
+# We search the root GO-term
+rootGO <- leaves(mygraphGO, "in")
+
+rootGO
+
+## [1] "GO:0003674"
+
+plot(mygraphGO)
+```
+![Fig. 2 - GO-MF subgraph.](figures/go.png)
+
+On the other hand, if you want to predict in two or three subdomains you should use the preCoreFG function. This function builds a graph respecting the GO constraints of inference and also links the GO-terms of the selected subdomains.
+
+```{r, message = FALSE, eval = FALSE}
+# We add GO-terms corresponding to Cellular Component subdomain
+myGOs <- c(CfData[['nodesGO']], "GO:1902494", "GO:0032991", "GO:1990234", 
+           "GO:0005575")
+
+# We build a graph respecting the GO constraints of inference to MF and CC subdomains
+mygraphGO <- preCoreFG(myGOs, domains="MF-CC")
+
+```
+
+```{r, message = FALSE, eval = FALSE}
+plot(mygraphGO)
+```
+![Fig. 3 - GO-Plus subgraph.](figures/goPlus.png)
+
+## Matching a GO-DAG to a Factor Graph
+Let's a GO subgraph, GO-terms *GO:i* are mapped to binary-valued variable nodes $x_i$ of a factor graph while relationships between GO-terms are mapped to logical factor nodes $f_k$ describing valid *GO:i* configurations under the True Path Graph constraint.
+
+```{r, message = FALSE, eval = FALSE}
+modelFGGA <- fgga2bipartite(mygraphGO)
+```
+
+## Flat prediction with FGGA clasiffier
+
+Now, let's use the MF subgraph to build our model of binary SVM classifiers with a training set of the Cf data.
+
+```{r, message = FALSE, eval = FALSE}
+# We take a subset of Cf data to train our model
+idsTrain <- CfData$indexGO[["indexTrain"]]
+
+# We build our model of binary SVM classifiers
+modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain, 
+                    tableGOs = CfData[["tableCfGO"]][idsTrain, ], 
+                    dxCharacterized = CfData[["dxCf"]][idsTrain, ], 
+                    graphGO = mygraphGO, kernelSVM = "radial")
+
+# We calculate the reliability of each GO-term
+varianceGOs <- varianceGO(tableGOs = CfData[["tableCfGO"]][idsTrain, ], 
+                          dxCharacterized = CfData[["dxCf"]][idsTrain, ], 
+                          kFold = 5, graphGO = mygraphGO, rootNode = rootGO, 
+                          kernelSVM = "radial")
+```
+
+```{r, message = FALSE, eval = FALSE}
+varianceGOs
+
+## GO:0000166 GO:0003674 GO:0003676 GO:0003677 GO:0003824 GO:0004888 GO:0005102 
+##  1.3004483  0.0000100  2.3773068  1.5530048  3.3824993  1.2688448  1.3195271 
+## GO:0005215 GO:0005488 GO:0005515 GO:0005524 GO:0008144 GO:0016740 GO:0016787 
+##  2.2117743  4.0902319  3.2122958  0.7110018  0.8312440  1.9614722  2.5753195 
+## GO:0017076 GO:0019899 GO:0030554 GO:0032553 GO:0032555 GO:0032559 GO:0035639 
+##  1.1586117  2.1021874  0.9022269  1.0898616  1.0445752  0.7087659  0.8924258 
+## GO:0036094 GO:0038023 GO:0042802 GO:0043167 GO:0043168 GO:0043169 GO:0046872 
+##  1.4021756  1.7232650  1.6397300  3.0664890  1.4531388  3.0353313  3.0910582 
+## GO:0060089 GO:0097159 GO:0097367 GO:0098772 GO:0140096 GO:0140110 GO:1901265 
+##  1.7056396  2.9746000  1.3634044  1.6099562  2.0235566  1.6172309  1.4168384 
+## GO:1901363 
+##  3.0297572
+```
+
+Next, we predict each GO-terms from a test set using our model of binary SVM classifiers.
+
+```{r, message = FALSE, eval = FALSE}
+
+dxTestCharacterized <- CfData[["dxCf"]][CfData$indexGO[["indexTest"]], ]
+
+matrixGOTest <- svmGO(svmMoldel = modelSVMs, 
+                      dxCharacterized = dxTestCharacterized, 
+                      rootNode = rootGO, 
+                      varianceSVM = varianceGOs)
+```
+
+```{r, message = FALSE, eval = FALSE}
+head(matrixGOTest)[,1:8]
+```
+
+```{r, message = FALSE, eval = FALSE}
+##         GO:0000166 GO:0003674 GO:0003676  GO:0003677 GO:0003824  GO:0004888
+## J9P8X1 0.926135321     0.9999  0.3074569 0.600553898 0.59982240 0.157856822
+## F1PVD9 0.485112267     0.9999  0.6354123 0.808455428 0.06839415 0.031457744
+## F1PTQ9 0.096663024     0.9999  0.7870800 0.763821055 0.57244575 0.023480645
+## E2R8P1 0.735410872     0.9999  0.3846618 0.380660284 0.51150758 0.386182815
+## F6UWV4 0.003731006     0.9999  0.1010887 0.082030649 0.46627673 0.005327759
+## E2RQR5 0.057073745     0.9999  0.1532581 0.003337285 0.76959377 0.017685679
+##        GO:0005102 GO:0005215
+## J9P8X1 0.14096741  0.3742157
+## F1PVD9 0.61976150  0.1229992
+## F1PTQ9 0.96084369  0.2169531
+## E2R8P1 0.38020302  0.2484609
+## F6UWV4 0.05190895  0.4360382
+## E2RQR5 0.01531198  0.5138971
+```
+
+## Compute marginal probabilities of GO-terms by each protein
+
+Once a factor graph model *FG* for the automated GO annotation problem has been defined, an iterative message passing algorithm between nodes of *FG* can be used to compute maximum a posteriori (MAP) estimates of variable nodes $x_i$ modeling actual *GO:i* annotations.
+
+```{r, message = FALSE, eval = FALSE}
+matrixFGGATest <- t(apply(matrixGOTest, MARGIN = 1, FUN = msgFGGA, 
+                          matrixFGGA = modelFGGA, graphGO = mygraphGO,
+                          tmax = 50, epsilon = 0.001))
+```
+
+The function *msgFGGA* returns a matrix with *k* rows and *m* columns corresponding to the Cf proteins and MF GO-terms respectively. 
+
+```{r, message = FALSE, eval = FALSE}
+head(matrixFGGATest)[,1:8]
+```
+
+```{r, message = FALSE, eval = FALSE}
+##          GO:0000166 GO:0003674   GO:0003676   GO:0003677 GO:0003824
+## J9P8X1 1.000000e+00  1.0000000 0.5263856432 3.161229e-01 0.93882766
+## F1PVD9 4.005237e-01  1.0000000 0.8868989927 7.170248e-01 0.07407267
+## F1PTQ9 1.226467e-03  1.0000000 0.9007860334 6.880191e-01 0.79597833
+## E2R8P1 1.000000e+00  1.0000000 0.5023234692 1.911936e-01 0.93726316
+## F6UWV4 3.243632e-08  0.9999994 0.0003352262 2.595499e-05 0.90598728
+## E2RQR5 8.141035e-04  1.0000000 0.0111000180 3.705365e-05 0.99651890
+##          GO:0004888  GO:0005102 GO:0005215
+## J9P8X1 8.910827e-03 0.070708891  0.3742157
+## F1PVD9 3.137589e-05 0.600164657  0.1229992
+## F1PTQ9 1.750546e-03 0.959243370  0.2169531
+## E2R8P1 1.232349e-01 0.373752750  0.2484609
+## F6UWV4 4.922087e-04 0.020493133  0.4360379
+## E2RQR5 9.452377e-05 0.001726707  0.5138971
+```
+
+# FGGA Performance
+
+We now evaluate the performance of **FGGA** in terms of hierarchical F-score. The hierarchical classification performance metrics like the hierarchical precision (HP), the hierarchical recall (HR), and the hierarchical F-score (HF) measures [publications](#references) [3] properly recognize partially correct classifications and correspondingly penalize more distant or more superficial errors. The formulas of the hierarchical metrics are shown below: 
+
+\[ 
+HP(s) = \frac{1}{\mid l(P_{G}(s)) \mid} \hspace{1.25mm} \sum_{q \hspace{0.5mm} \in \hspace{0.5mm} l(P_{G}(s))} \hspace{1.5mm} \max_{c \hspace{0.5mm} \in \hspace{0.5mm} l(C_{G}(s))}  \frac{\mid \uparrow c \hspace{1mm} \cap \uparrow q \mid}{\uparrow q} 
+\]
+
+\[ HR(s) = \frac{1}{\mid l(C_{G}(s)) \mid} \hspace{1.25mm} \sum_{c \hspace{0.5mm} \in \hspace{0.5mm} (C_{G}(s))} \hspace{1.5mm} \max_{q \hspace{0.5mm} \in \hspace{0.5mm} l(P_{G}(s))}  \frac{\mid \uparrow c \hspace{1mm} \cap \uparrow q \mid}{\uparrow c}
+\]
+
+\[ HF(s) = \frac{2 \cdot HP \cdot HR}{HP + HR}
+\]
+
+```{r, message = FALSE, eval = FALSE}
+        HP           HR           HF      samples 
+    0.5949843    0.7047748    0.6178593    2399
+```
+
+Finally, we evaluate the performance of *FGGA* in terms of Area under the ROC Curve (AUC) and in terms of Precision at x Recall level (PxR). We use the R package [PerfMeas](https://cran.r-project.org/web/packages/PerfMeas), which provides functions to compute the performance measures we need.
+
+```{r, message = FALSE, eval = FALSE}
+library(PerfMeas)
+
+for (i in 1:dim(matrixFGGATest)[1]){
+     matrixFGGATest[which(matrixFGGATest[i, ] >= 0.5),] <- 1
+     matrixFGGATest[which(matrixFGGATest[i, ] < 0.5),] <- 0
+}
+
+# Computing F-score
+Fs <- F.measure.single.over.classes(CfData$tableCfGO[rownames(matrixFGGATest), ],
+                                    matrixFGGATest)
+
+# Average F-score
+Fs$average[4]
+
+##         F 
+## 0.4379346
+
+# Computing AUC
+auc <- AUC.single.over.classes(CfData$tableCfGO[rownames(matrixFGGATest), ],
+                               matrixFGGATest);
+
+## [1] 0.7090067
+
+# Average AUC
+auc$average
+
+# Computing precision at different recall levels
+PXR <- precision.at.multiple.recall.level.over.classes(
+  CfData$tableCfGO[rownames(matrixFGGATest), ], matrixFGGATest, 
+  seq(from = 0.1, to = 1, by = 0.1));
+
+# Average PxR
+PXR$avgPXR
+
+##       0.1       0.2       0.3       0.4       0.5       0.6       0.7
+## 0.5750548 0.5915842 0.5841248 0.5626482 0.5360041 0.5083309 0.4702906 
+##        0.8       0.9         1 
+##  0.4275149 0.3762800 0.3066687
+```
+
+# References
+
+1: Spetale F.E., Tapia E., Krsticevic F., Roda F. and Bulacio P. “A Factor Graph Approach to Automated GO Annotation”. PLoS ONE 11(1): e0146986, 2016.
+
+2: Spetale Flavio E., Arce D., Krsticevic F., Bulacio P. and Tapia E. “Consistent prediction of GO protein localization”. Scientific Report 7787(8), 2018
+
+3: Verspoor K., Cohn J., Mnizewski S., Joslyn C. “A categorization  approach  to  automated ontological function annotation”. Protein Science. 2006;15:1544–1549
