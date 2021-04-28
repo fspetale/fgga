@@ -15,18 +15,13 @@ output:
     BiocStyle::html_document:
     toc_float: true
 
-vignette:
-    \VignetteIndexEntry{FGGA}
-    \usepackage[utf8]{inputenc}
+vignette: >
+  %\VignetteIndexEntry{FGGA}
+  %\VignetteEncoding{UTF-8}
 
 
 abstract: We present a tutorial to use **FGGA**, a hierarchical ensemble method that exploits the ability of factor graphs for modeling logical and statistical constraints over system variables. The **FGGA model** is built in two main steps. In the first step, a core Factor Graph (FG) modeling hidden GO-term predictions and relationships is created. In the second step, the FG is enriched with nodes modeling observable GO-term predictions issued by **binary SVM classifiers**. In addition, probabilistic constraints modeling learning gaps between hidden and observable GO-term predictions are introduced. These gaps are assumed to be independent among GO-terms, locally additive with respect to observed predictions, and zero-mean Gaussian. **FGGA predictions** are issued by the native iterative **message passing algorithm** of factor graphs.    
 ---     
-<!--
-%\VignetteEngine{knitr::rmarkdown}
-%\VignetteIndexEntry{fgga}
-\usepackage[utf8]{inputenc}
--->
 
 ```{r pre,echo=FALSE,results='hide',warning=TRUE,include=FALSE}
 library(knitr)
