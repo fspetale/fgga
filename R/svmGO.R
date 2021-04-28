@@ -72,7 +72,7 @@ svmGO <- function(svmMoldel, dxCharacterized, rootNode, varianceSVM) {
     matrixTest <- vapply(dxTestSVM, cbind,
                         FUN.VALUE = double(dim(dxTestSVM[[1]])[1]))
     colnames(matrixTest) <- vapply(dxTestSVM, colnames,
-                                   FUN.VALUE = character(1))
+                                    FUN.VALUE = character(1))
     rownames(matrixTest) <- vapply(dxTestSVM[1], rownames,
                                 FUN.VALUE = character(dim(dxTestSVM[[1]])[1]))
     return(matrixTest)
