@@ -1,6 +1,7 @@
 exportPattern("^[[:alpha:]]+")
 
 import("RBGL")
+import("stats")
 importFrom("jsonlite", fromJSON)
 importFrom("stats", "na.omit", "predict", "setNames")
 importFrom("methods", "as", "is")

@@ -9,18 +9,25 @@ FGGA is a graph-based machine learning approach for the automated and consistent
 \tabular{ll}{
 Package: \tab fgga\cr
 Type: \tab Package\cr
-Version: \tab 0.1.0\cr
+Version: \tab 0.99.0\cr
 Date: \tab 2021-04-06\cr
 License: \tab GPL 3.0\cr
+LazyLoad: \tab yes\cr
 }
-
 }
 \author{
-Flavio E. Spetale, Javier Muriilo and Elizabeth Tapia
+\emph{Flavio E. Spetale}, \emph{Javier Murillo} and \emph{Elizabeth Tapia}
 
-Maintainer: Flavio E. Spetale <spetale@cifasis-conicet.gov.ar>,
-Javier Murillo <murillo@cifasis-conicet.gov.ar>
+BioInformatics
+
+Cifasis-Conicet
+
+\email{spetale@cifasis-conicet.gov.ar}
+
+Maintainer:
+\emph{Flavio E. Spetale}
 }
+
 \references{
 Spetale F.E., et al. \bold{A Factor Graph Approach to Automated GO Annotation}. \emph{PLoS ONE}  (2016). \url{ https://doi.org/10.1371/journal.pone.0146986}.
 
@@ -44,7 +51,7 @@ indexTest <- setdiff(seq_len(dim(CfData[["dxCf"]])[1]), indexTrain)
 
 dxCfTestCharacterized <- CfData[["dxCf"]][indexTest, ]
 
-\dontrun{
+\donttest{
 # Applying the FGGA algorithm
 fggaResults <- fgga(graphGO = CfData[["graphCfGO"]],
                     tableGOs = CfData[["tableCfGO"]],

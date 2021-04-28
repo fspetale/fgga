@@ -13,8 +13,13 @@ author:
 date: "`r Sys.Date()`"
 output:
     BiocStyle::html_document:
-      toc_float: true
-      
+    toc_float: true
+
+vignette:
+    \VignetteIndexEntry{fgga}
+    \usepackage[utf8]{inputenc}
+
+
 abstract: We present a tutorial to use **FGGA**, a hierarchical ensemble method that exploits the ability of factor graphs for modeling logical and statistical constraints over system variables. The **FGGA model** is built in two main steps. In the first step, a core Factor Graph (FG) modeling hidden GO-term predictions and relationships is created. In the second step, the FG is enriched with nodes modeling observable GO-term predictions issued by **binary SVM classifiers**. In addition, probabilistic constraints modeling learning gaps between hidden and observable GO-term predictions are introduced. These gaps are assumed to be independent among GO-terms, locally additive with respect to observed predictions, and zero-mean Gaussian. **FGGA predictions** are issued by the native iterative **message passing algorithm** of factor graphs.    
 ---     
 <!--
@@ -46,7 +51,7 @@ The **fgga** R source package can be downloaded from **[Bioconductor repository]
 ```{r, message = FALSE, eval = FALSE}
 ## From Bioconductor repository
 if (!requireNamespace("BiocManager", quietly = TRUE)) {
-      install.packages("BiocManager")
+        install.packages("BiocManager")
   }
 BiocManager::install("fgga")
 
@@ -139,22 +144,26 @@ On the other hand, if you want to predict in two or three subdomains you should 
 ```{r, message = FALSE, eval = FALSE}
 # We add GO-terms corresponding to Cellular Component subdomain
 myGOs <- c(CfData[['nodesGO']], "GO:1902494", "GO:0032991", "GO:1990234", 
-           "GO:0005575")
+            "GO:0005575")
 
 # We build a graph respecting the GO constraints of inference to MF and CC subdomains
 mygraphGO <- preCoreFG(myGOs, domains="MF-CC")
 
-```
-
-```{r, message = FALSE, eval = FALSE}
 plot(mygraphGO)
 ```
+
 ![Fig. 3 - GO-Plus subgraph.](figures/goPlus.png)
 
 ## Matching a GO-DAG to a Factor Graph
 Let's a GO subgraph, GO-terms *GO:i* are mapped to binary-valued variable nodes $x_i$ of a factor graph while relationships between GO-terms are mapped to logical factor nodes $f_k$ describing valid *GO:i* configurations under the True Path Graph constraint.
 
-```{r, message = FALSE, eval = FALSE}
+```{r message=FALSE, include=FALSE, results='hide'}
+mygraphGO <- as(CfData[["graphCfGO"]], "graphNEL")
+
+rootGO <- leaves(mygraphGO, "in")
+```
+
+```{r, message = FALSE, eval = TRUE}
 modelFGGA <- fgga2bipartite(mygraphGO)
 ```
 
@@ -162,7 +171,7 @@ modelFGGA <- fgga2bipartite(mygraphGO)
 
 Now, let's use the MF subgraph to build our model of binary SVM classifiers with a training set of the Cf data.
 
-```{r, message = FALSE, eval = FALSE}
+```{r message=FALSE, include=FALSE}
 # We take a subset of Cf data to train our model
 idsTrain <- CfData$indexGO[["indexTrain"]]
 
@@ -171,95 +180,56 @@ modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain,
                     tableGOs = CfData[["tableCfGO"]][idsTrain, ], 
                     dxCharacterized = CfData[["dxCf"]][idsTrain, ], 
                     graphGO = mygraphGO, kernelSVM = "radial")
-
-# We calculate the reliability of each GO-term
-varianceGOs <- varianceGO(tableGOs = CfData[["tableCfGO"]][idsTrain, ], 
-                          dxCharacterized = CfData[["dxCf"]][idsTrain, ], 
-                          kFold = 5, graphGO = mygraphGO, rootNode = rootGO, 
-                          kernelSVM = "radial")
 ```
 
 ```{r, message = FALSE, eval = FALSE}
-varianceGOs
+# We calculate the reliability of each GO-term
+varianceGOs <- varianceGO(tableGOs = CfData[["tableCfGO"]][idsTrain, ], 
+                        dxCharacterized = CfData[["dxCf"]][idsTrain, ], 
+                        kFold = 5, graphGO = mygraphGO, rootNode = rootGO, 
+                        kernelSVM = "radial")
 
-## GO:0000166 GO:0003674 GO:0003676 GO:0003677 GO:0003824 GO:0004888 GO:0005102 
-##  1.3004483  0.0000100  2.3773068  1.5530048  3.3824993  1.2688448  1.3195271 
-## GO:0005215 GO:0005488 GO:0005515 GO:0005524 GO:0008144 GO:0016740 GO:0016787 
-##  2.2117743  4.0902319  3.2122958  0.7110018  0.8312440  1.9614722  2.5753195 
-## GO:0017076 GO:0019899 GO:0030554 GO:0032553 GO:0032555 GO:0032559 GO:0035639 
-##  1.1586117  2.1021874  0.9022269  1.0898616  1.0445752  0.7087659  0.8924258 
-## GO:0036094 GO:0038023 GO:0042802 GO:0043167 GO:0043168 GO:0043169 GO:0046872 
-##  1.4021756  1.7232650  1.6397300  3.0664890  1.4531388  3.0353313  3.0910582 
-## GO:0060089 GO:0097159 GO:0097367 GO:0098772 GO:0140096 GO:0140110 GO:1901265 
-##  1.7056396  2.9746000  1.3634044  1.6099562  2.0235566  1.6172309  1.4168384 
-## GO:1901363 
-##  3.0297572
+varianceGOs
+```
+
+```{r echo=FALSE, message=FALSE}
+CfData[["varianceGOs"]]
+
+varianceGOs <- CfData[["varianceGOs"]]
 ```
 
 Next, we predict each GO-terms from a test set using our model of binary SVM classifiers.
 
-```{r, message = FALSE, eval = FALSE}
+```{r, message = FALSE, eval = TRUE}
 
 dxTestCharacterized <- CfData[["dxCf"]][CfData$indexGO[["indexTest"]], ]
 
 matrixGOTest <- svmGO(svmMoldel = modelSVMs, 
-                      dxCharacterized = dxTestCharacterized, 
-                      rootNode = rootGO, 
-                      varianceSVM = varianceGOs)
-```
+                    dxCharacterized = dxTestCharacterized, 
+                    rootNode = rootGO, 
+                    varianceSVM = varianceGOs)
 
-```{r, message = FALSE, eval = FALSE}
 head(matrixGOTest)[,1:8]
-```
-
-```{r, message = FALSE, eval = FALSE}
-##         GO:0000166 GO:0003674 GO:0003676  GO:0003677 GO:0003824  GO:0004888
-## J9P8X1 0.926135321     0.9999  0.3074569 0.600553898 0.59982240 0.157856822
-## F1PVD9 0.485112267     0.9999  0.6354123 0.808455428 0.06839415 0.031457744
-## F1PTQ9 0.096663024     0.9999  0.7870800 0.763821055 0.57244575 0.023480645
-## E2R8P1 0.735410872     0.9999  0.3846618 0.380660284 0.51150758 0.386182815
-## F6UWV4 0.003731006     0.9999  0.1010887 0.082030649 0.46627673 0.005327759
-## E2RQR5 0.057073745     0.9999  0.1532581 0.003337285 0.76959377 0.017685679
-##        GO:0005102 GO:0005215
-## J9P8X1 0.14096741  0.3742157
-## F1PVD9 0.61976150  0.1229992
-## F1PTQ9 0.96084369  0.2169531
-## E2R8P1 0.38020302  0.2484609
-## F6UWV4 0.05190895  0.4360382
-## E2RQR5 0.01531198  0.5138971
 ```
 
 ## Compute marginal probabilities of GO-terms by each protein
 
 Once a factor graph model *FG* for the automated GO annotation problem has been defined, an iterative message passing algorithm between nodes of *FG* can be used to compute maximum a posteriori (MAP) estimates of variable nodes $x_i$ modeling actual *GO:i* annotations.
 
-```{r, message = FALSE, eval = FALSE}
+```{r eval=FALSE, message=FALSE}
 matrixFGGATest <- t(apply(matrixGOTest, MARGIN = 1, FUN = msgFGGA, 
-                          matrixFGGA = modelFGGA, graphGO = mygraphGO,
-                          tmax = 50, epsilon = 0.001))
+                        matrixFGGA = modelFGGA, graphGO = mygraphGO,
+                        tmax = 50, epsilon = 0.001))
 ```
 
 The function *msgFGGA* returns a matrix with *k* rows and *m* columns corresponding to the Cf proteins and MF GO-terms respectively. 
 
-```{r, message = FALSE, eval = FALSE}
-head(matrixFGGATest)[,1:8]
-```
+```{r echo=TRUE, message=FALSE}
+matrixFGGATest <- t(apply(matrixGOTest[1:100, ], MARGIN = 1, FUN = msgFGGA, 
+                        matrixFGGA = modelFGGA, graphGO = mygraphGO,
+                        tmax = 50, epsilon = 0.001))
 
-```{r, message = FALSE, eval = FALSE}
-##          GO:0000166 GO:0003674   GO:0003676   GO:0003677 GO:0003824
-## J9P8X1 1.000000e+00  1.0000000 0.5263856432 3.161229e-01 0.93882766
-## F1PVD9 4.005237e-01  1.0000000 0.8868989927 7.170248e-01 0.07407267
-## F1PTQ9 1.226467e-03  1.0000000 0.9007860334 6.880191e-01 0.79597833
-## E2R8P1 1.000000e+00  1.0000000 0.5023234692 1.911936e-01 0.93726316
-## F6UWV4 3.243632e-08  0.9999994 0.0003352262 2.595499e-05 0.90598728
-## E2RQR5 8.141035e-04  1.0000000 0.0111000180 3.705365e-05 0.99651890
-##          GO:0004888  GO:0005102 GO:0005215
-## J9P8X1 8.910827e-03 0.070708891  0.3742157
-## F1PVD9 3.137589e-05 0.600164657  0.1229992
-## F1PTQ9 1.750546e-03 0.959243370  0.2169531
-## E2R8P1 1.232349e-01 0.373752750  0.2484609
-## F6UWV4 4.922087e-04 0.020493133  0.4360379
-## E2RQR5 9.452377e-05 0.001726707  0.5138971
+head(matrixFGGATest)[,1:8]
 ```
 
 # FGGA Performance
@@ -287,8 +257,8 @@ Finally, we evaluate the performance of *FGGA* in terms of Area under the ROC Cu
 library(PerfMeas)
 
 for (i in 1:dim(matrixFGGATest)[1]){
-     matrixFGGATest[which(matrixFGGATest[i, ] >= 0.5),] <- 1
-     matrixFGGATest[which(matrixFGGATest[i, ] < 0.5),] <- 0
+    matrixFGGATest[which(matrixFGGATest[i, ] >= 0.5),] <- 1
+    matrixFGGATest[which(matrixFGGATest[i, ] < 0.5),] <- 0
 }
 
 # Computing F-score
@@ -303,7 +273,7 @@ Fs$average[4]
 
 # Computing AUC
 auc <- AUC.single.over.classes(CfData$tableCfGO[rownames(matrixFGGATest), ],
-                               matrixFGGATest);
+                                matrixFGGATest);
 
 ## [1] 0.7090067
 
@@ -312,8 +282,8 @@ auc$average
 
 # Computing precision at different recall levels
 PXR <- precision.at.multiple.recall.level.over.classes(
-  CfData$tableCfGO[rownames(matrixFGGATest), ], matrixFGGATest, 
-  seq(from = 0.1, to = 1, by = 0.1));
+    CfData$tableCfGO[rownames(matrixFGGATest), ], matrixFGGATest, 
+    seq(from = 0.1, to = 1, by = 0.1));
 
 # Average PxR
 PXR$avgPXR

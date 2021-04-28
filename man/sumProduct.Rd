@@ -6,26 +6,28 @@ Message passing algorithm between nodes of the Forney Factor Graph
 \description{
 msgFGGA operates in Forney Factor Graphs and computes approximate maximum a posteriori (MAP) estimates of hidden GO variable nodes (GO-terms).
 }
+
 \usage{
 msgFGGA(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
         epsilon = 0.001)
 }
 
 \arguments{
-  \item{matrixFGGA}{A binary matrix with FGGA model of the class `fgga.'}
+    \item{matrixFGGA}{A binary matrix with FGGA model of the class `fgga.'}
 
-  \item{obsValueGOs}{A named vector with `m' probabilistic prediction values for a protein coding gene.}
+    \item{obsValueGOs}{A named vector with `m' probabilistic prediction values for a protein coding gene.}
 
-  \item{graphGO}{A graphNEL graph with `m' GO node labels.}
+    \item{graphGO}{A graphNEL graph with `m' GO node labels.}
 
-  \item{tmax}{An integer indicating the maximum number of iterations (defualt: 200).}
+    \item{tmax}{An integer indicating the maximum number of iterations (defualt: 200).}
 
-  \item{epsilon}{An integer that represents the convergence criteria (default: 0.001)}
+    \item{epsilon}{An integer that represents the convergence criteria (default: 0.001)}
 }
 
 \details{
 Starting from GO-term predictions at observable variable nodes, probability distribution functions modelling the learning noise of individual GO-terms, a user-defined number of iterations (maximum 200), a user-defined threshold for the convergence of predictions (maximum 0.001), and the structure of the Forney Factor Graph, the \bold{msgFGGA} delivers approximate maximum a posteriori (MAP) estimates of hidden GO variable nodes (GO-terms).
 }
+
 \value{
 A named vector with `m' consistent probabilistic predictions for a protein coding genes.
 }
@@ -48,10 +50,7 @@ data(CfData)
 
 mygraphGO <- as(CfData[["graphCfGO"]], "graphNEL")
 
-\dontrun{
-svmModel <- svmTrain(CfData[["nodesGO"]][1], CfData[["tableCfGO"]],
-                    CfData[["dxCf"]], mygraphGO, kernelSVM = "radial")
-
+\donttest{
 modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain,
                     tableGOs = CfData[["tableCfGO"]],
                     dxCharacterized = CfData[["dxCf"]],
@@ -61,16 +60,16 @@ modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain,
 rootGO <- leaves(mygraphGO, "in")
 
 varianceGOs <- varianceGO(tableGOs = CfData[["tableCfGO"]],
-                          dxCharacterized = CfData[["dxCf"]],
-                          kFold = 5, graphGO = mygraphGO,
-                          rootNode = rootGO, kernelSVM = "radial")
+                            dxCharacterized = CfData[["dxCf"]],
+                            kFold = 5, graphGO = mygraphGO,
+                            rootNode = rootGO, kernelSVM = "radial")
 
-dxTestCharacterized <- CfData[["dxCf"]][
-                              sample(1:dim(CfData[["dxCf"]])[2], 20), ]
+dxTestCharacterized <- CfData[["dxCf"]][sample(
+                                        1:dim(CfData[["dxCf"]])[2], 20), ]
 
 matrixGOTest <- svmGO(svmMoldel = modelSVMs,
-                      dxCharacterized = dxTestCharacterized,
-                      rootNode = rootGO, varianceSVM = varianceGOs)
+                        dxCharacterized = dxTestCharacterized,
+                        rootNode = rootGO, varianceSVM = varianceGOs)
 
 modelFGGA <- fgga2bipartite(mygraphGO)
 

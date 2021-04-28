@@ -12,10 +12,9 @@ createFolds(target, k_fold = 10)
 }
 
 \arguments{
-  \item{target}{A binary vector of a GO class
-  }
-  \item{k_fold}{An integer for the number of folds
-  }
+    \item{target}{A binary vector of a GO class}
+
+    \item{k_fold}{An integer for the number of folds}
 }
 \details{
 A random sampling is performed on binary classification data. A set of k data folds reflecting the original class balance is obtained.

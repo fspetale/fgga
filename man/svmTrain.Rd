@@ -12,22 +12,24 @@ svmTrain(nodeGraph, tableGOs, dxCharacterized, graphGO,
 }
 
 \arguments{
-  \item{nodeGraph}{A character indicating a GO node label}
+    \item{nodeGraph}{A character indicating a GO node label}
 
-  \item{tableGOs}{A binary matrix with `n' proteins (rows) by `m' GO node labels (columns).}
+    \item{tableGOs}{A binary matrix with `n' proteins (rows) by `m' GO node labels (columns).}
 
-  \item{dxCharacterized}{A data frame with `n' protein coding genes (rows) by `f' features (columns).}
+    \item{dxCharacterized}{A data frame with `n' protein coding genes (rows) by `f' features (columns).}
 
-  \item{graphGO}{A graphNEL graph with `m' GO node labels.}
+    \item{graphGO}{A graphNEL graph with `m' GO node labels.}
 
-  \item{kernelSVM}{The kernel used to calculate the variance (default: radial).}
+    \item{kernelSVM}{The kernel used to calculate the variance (default: radial).}
 }
+
 \details{
 Starting from sets of positively annotated protein sequences to different GO-terms in a GO subgraph, corresponding sets of negatively annotated protein sequences are computed using the inclusive separation policy proposed by Eisner et al. Training datasets for each GO-term are used to train binary Support Vector Machine (SVM) classifiers with a variety of kernel options.
 }
 \value{
- \item{svmTrain}{A list of objects of ``svm" class containing the fitted model.}
+    \item{svmTrain}{A list of objects of ``svm" class containing the fitted model.}
 }
+
 \references{
 Chang, Chih-Chung and Lin, Chih-Jen: LIBSVM: a library for Support Vector Machines
 \url{http://www.csie.ntu.edu.tw/~cjlin/libsvm}
@@ -48,17 +50,12 @@ data(CfData)
 
 mygraphGO <- as(CfData[["graphCfGO"]], "graphNEL")
 
-\dontrun{
-## SVM training an GO-term specific
-svmModel <- svmTrain(CfData[["nodesGO"]][1], CfData[["tableCfGO"]],
-                      CfData[["dxCf"]], mygraphGO, kernelSVM = "radial")
-
-## SVM training in all GO-terms
-modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain,
+# SVM training in four GO-terms
+modelSVMs <- lapply(CfData[["nodesGO"]][1:4], FUN = svmTrain,
                     tableGOs = CfData[["tableCfGO"]],
                     dxCharacterized = CfData[["dxCf"]],
                     graphGO = mygraphGO, kernelSVM = "radial")
 
-}}
+}
 
 \keyword{svm}
