@@ -16,7 +16,7 @@ output:
     toc_float: true
 
 vignette:
-    \VignetteIndexEntry{fgga}
+    \VignetteIndexEntry{FGGA}
     \usepackage[utf8]{inputenc}
 
 
