@@ -7,7 +7,7 @@ Authors@R: c(person("Spetale", "Flavio", email = "spetale@cifasis-conicet.gov.ar
 	     person("Elizabeth", "Tapia", role = c("aut", "ctb")))
 biocViews: Software, StatisticalMethod, Classification, Network, NetworkInference, SupportVectorMachine, GraphAndNetwork, GO
 Description: Package that implements the FGGA algorithm. This package provides a hierarchical ensemble method based ob factor graphs for the consistent GO annotation of protein coding genes. FGGA embodies elements of predicate logic, communication theory, supervised learning and inference in graphical models.
-Depends: R (>= 4.0), RBGL
+Depends: R (>= 4.1), RBGL
 Imports: graph, stats, e1071, methods, gRbase, jsonlite
 Suggests: knitr, rmarkdown, GOstats, PerfMeas, BiocGenerics
 License: GPL-3
