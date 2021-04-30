@@ -38,6 +38,12 @@ test_svm <- function() {
 
   vx <- array(runif(9, 0, 1), 9)
   names(vx) <- colnames(dx1)
+  classSVM <- vapply(svmM, class, FUN.VALUE = character(1))
+  sinSVM <- which(classSVM=="list")
+  if (length(sinSVM)>1){
+    sinSVM <- setdiff(sinSVM, 6)
+    svmM <- svmM[-sinSVM]
+  }
 
   mT <- svmGO(svmM, dx3, root, vx)
 

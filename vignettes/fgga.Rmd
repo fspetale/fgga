@@ -1,6 +1,5 @@
 ---
-title: "FGGA"
-subtitle: "Factor Graph GO Annotation"
+title: "FGGA: Factor Graph GO Annotation"
 author:
 - name: F.E. Spetale
   affiliation: 
@@ -10,25 +9,32 @@ author:
   affiliation: *id
 - name: E. Tapia
   affiliation: *id
+package: fgga
 date: "`r Sys.Date()`"
 output:
     BiocStyle::html_document:
     toc_float: true
-
 vignette: >
-  %\VignetteIndexEntry{FGGA}
+  %\VignetteIndexEntry{FGGA: Factor Graph GO Annotation}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 
-
-abstract: We present a tutorial to use **FGGA**, a hierarchical ensemble method that exploits the ability of factor graphs for modeling logical and statistical constraints over system variables. The **FGGA model** is built in two main steps. In the first step, a core Factor Graph (FG) modeling hidden GO-term predictions and relationships is created. In the second step, the FG is enriched with nodes modeling observable GO-term predictions issued by **binary SVM classifiers**. In addition, probabilistic constraints modeling learning gaps between hidden and observable GO-term predictions are introduced. These gaps are assumed to be independent among GO-terms, locally additive with respect to observed predictions, and zero-mean Gaussian. **FGGA predictions** are issued by the native iterative **message passing algorithm** of factor graphs.    
----     
-
-```{r pre,echo=FALSE,results='hide',warning=TRUE,include=FALSE}
-library(knitr)
-opts_chunk$set(warning=TRUE, message = FALSE, cache = FALSE, fig.path = "figures/", tidy = FALSE, tidy.opts = list(width.cutoff = 60))
-```
+abstract: We present a tutorial to use **FGGA**, a hierarchical ensemble method that exploits the ability of factor graphs for modeling logical and statistical constraints over system variables. The **FGGA model** is built in two main steps. In the first step, a core Factor Graph (FG) modeling hidden GO-term predictions and relationships is created. In the second step, the FG is enriched with nodes modeling observable GO-term predictions issued by **binary SVM classifiers**. In addition, probabilistic constraints modeling learning gaps between hidden and observable GO-term predictions are introduced. These gaps are assumed to be independent among GO-terms, locally additive with respect to observed predictions, and zero-mean Gaussian. **FGGA predictions** are issued by the native iterative **message passing algorithm** of factor graphs.
 ---
+```{css, echo = FALSE, eval = TRUE}
+.whiteCode {
+  background-color: white;
+  border-color: #337ab7 !important;
+  border: 1px solid;
+}
+```
 
+```{r settings, include = FALSE}
+#library(knitr)
+#opts_chunk$set(warning=TRUE, message = FALSE, cache = FALSE, tidy = FALSE, tidy.opts = list(width.cutoff = 60))
+options(width = 100)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",class.source = "whiteCode")
+```
 # Automated Gene Ontology (GO) annotation methods
 
 As volume of genomic data grows, computational methods become essential for providing a first glimpse onto gene annotations. Automated Gene Ontology (GO) annotation methods based on hierarchical ensemble classification techniques are particularly interesting when interpretability of annotation results is a main concern. In these methods, raw GO-term predictions computed by base binary classifiers are leveraged by checking the consistency of predefined GO relationships. FGGA is a factor graph approach to the hierarchical ensemble formulation of the automated GO annotation problem. In this formal method, a core factor graph is first built based on the GO structure and then enriched to take into account the noisy nature of GO-term predictions. Hence, starting from raw GO-term predictions, an iterative message passing algorithm between nodes of the factor graph is used to compute marginal probabilities of target GO-terms. 
@@ -37,7 +43,7 @@ The method is detailed in the original [publications](#references) [1, 2], but t
 
 Thus, **FGGA** is a tool to the automated annotation of protein sequences, however, the annotation of other types of striking functional gene products is also possible, e.g., long non-coding RNAs. FGGA may bring an opportunity for improving the annotation of long non-coding RNA sequences through boosting the confidence of base binary classifiers by the characterization of their structures primary, secondary and tertiary. Along the vignette, we used protein coding genes data from Cannis familiaris organism obtained with  [UniProt](https://www.uniprot.org/uniprot/?query=taxonomy:9615).
 
-![Fig. 1 - Workflow of FGGA algorithm.](figures/framework.png)
+![Fig. 1 - Workflow of FGGA algorithm.](framework.png)
 
 # Installation
 
@@ -55,7 +61,11 @@ BiocManager::install("devtools")
 devtools::install_github("fspetale/fgga")
 ```
 
+After the package is installed, it can be loaded into R workspace by
 
+```{r setup, eval = TRUE}
+library(fgga)
+```
 # Input data
 
 At present, the method directly supports data characterized from gene product sequences. This characterization can be generated according to the expert's criteria. For example, possible characterizations can be: [PFAM motifs](https://pfam.xfam.org/), [physico-chemical properties](https://web.expasy.org/protparam/), [signal peptides](http://www.cbs.dtu.dk/services/), among others. The admitted values can be of the numeric, boolean or character type. However, for greater efficiency of the binary classification algorithm it is recommended that the use of normalized numerical values. These datasets must have at least 50 annotations per GO-term to train the FGGA model.
@@ -66,11 +76,8 @@ In this section, we apply **FGGA** to predict the biological functions, GO-terms
 
 ## Data Loading
 
-Let us load the fgga package and import the toy dataset in the workspace:
+Let us import the toy dataset in the workspace:
 ```{r, message = FALSE, eval = TRUE}
-## Let us load the R package
-library(fgga)
-
 # Loading Canis lupus familiaris dataset and example R objects
 data(CfData)
 
@@ -132,7 +139,7 @@ rootGO
 
 plot(mygraphGO)
 ```
-![Fig. 2 - GO-MF subgraph.](figures/go.png)
+![Fig. 2 - GO-MF subgraph.](go.png)
 
 On the other hand, if you want to predict in two or three subdomains you should use the preCoreFG function. This function builds a graph respecting the GO constraints of inference and also links the GO-terms of the selected subdomains.
 
@@ -147,7 +154,7 @@ mygraphGO <- preCoreFG(myGOs, domains="MF-CC")
 plot(mygraphGO)
 ```
 
-![Fig. 3 - GO-Plus subgraph.](figures/goPlus.png)
+![Fig. 3 - GO-Plus subgraph.](goPlus.png)
 
 ## Matching a GO-DAG to a Factor Graph
 Let's a GO subgraph, GO-terms *GO:i* are mapped to binary-valued variable nodes $x_i$ of a factor graph while relationships between GO-terms are mapped to logical factor nodes $f_k$ describing valid *GO:i* configurations under the True Path Graph constraint.
