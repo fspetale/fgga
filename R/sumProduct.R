@@ -11,7 +11,7 @@
 msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
                     epsilon = 0.001) {
     if (is(matrixFGGA) != "fgga") {
-        print("matrixFGGA is not class fgga")
+        message("matrixFGGA is not class fgga")
         return()
     } else {
         matrixFGGA <- as(matrixFGGA, "matrix")
@@ -41,9 +41,10 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
             submatrixGO <- matrixGO[nodeLinks, nodeLinks]
             leafGO <- names(which(apply(submatrixGO, MARGIN = 1, sum) == 0))
             parentsGO <- setdiff(colnames(submatrixGO), leafGO)
-            functionLink <- t(sapply(names(nodeLinks), FUN = function(x, y, w) {
-                    (if (x == w) setdiff(y, x) else c(w, setdiff(y, c(x, w))))},
-                w = leafGO, y = names(nodeLinks)))
+#           functionLink <- t(sapply(names(nodeLinks), FUN = function(x, y, w){
+            functionLink <- t(apply(t(names(nodeLinks)), MARGIN=2,
+                FUN = function(x, y, w) {(if (x == w) setdiff(y, x) else c(
+                w, setdiff(y, c(x, w))))}, w = leafGO, y = names(nodeLinks)))
             for (k in seq_len(length(nodeLinks))) {
                     if (length(nodeLinks) > 2) {
                         matrixFunctionToNode[i, nodeLinks[k]][[1]] <-
@@ -60,8 +61,9 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
             }
         }
         nodeLinks <- which(matrixFGGA[i, ] == 1)
-        functionLink <- t(sapply(names(nodeLinks), FUN = function(x, y) {
-            (setdiff(y, x))}, y = names(nodeLinks)))
+#        functionLink <- t(sapply(names(nodeLinks), FUN = function(x, y) {
+        functionLink <- t(apply(t(names(nodeLinks)), MARGIN=2,
+            FUN = function(x, y) {(setdiff(y, x))}, y = names(nodeLinks)))
         for (k in seq_len(length(nodeLinks))) {
                 if (length(nodeLinks) > 2) {
                     matrixNodeToFunction[i, nodeLinks[k]][[1]] <- list(
@@ -199,6 +201,6 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
     }
     valuesGO <- array(0, nNodes)
     names(valuesGO) <- colnames(matrixFunctionToNode)
-    print("Graph UNCONVERGED")
+    message("Graph UNCONVERGED")
     return(valuesGO)
 }

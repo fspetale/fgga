@@ -57,17 +57,20 @@ data(CfData)
 
 mygraphGO <- as(CfData[["graphCfGO"]], "graphNEL")
 
-dxCfTestCharacterized <- CfData[["dxCf"]][
-                                sample(1:dim(CfData[["dxCf"]])[1], 20), ]
+dxCfTestCharacterized <- CfData[["dxCf"]][CfData[["indexGO"]]$indexTest[1:2], ]
 
-\donttest{
+myTableGO <- CfData[["tableCfGO"]][
+                    CfData[["indexGO"]]$indexTrain[1:300], ]
+
+dataTrain <- CfData[["dxCf"]][
+                    CfData[["indexGO"]]$indexTrain[1:300], ]
+
 fggaResults <- fgga(graphGO = mygraphGO,
-                tableGOs = CfData[["tableCfGO"]],
-                dxCharacterized = CfData[["dxCf"]],
-                dxTestCharacterized = dxCfTestCharacterized, kFold = 5,
+                tableGOs = myTableGO, dxCharacterized = dataTrain,
+                dxTestCharacterized = dxCfTestCharacterized, kFold = 2,
                 tmax = 50, epsilon = 0.05)
 
-}}
+}
 
 \keyword{fgga2bipartite}
 \keyword{msgFGGA }

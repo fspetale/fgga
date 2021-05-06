@@ -1,6 +1,6 @@
 svmTrain <- function(nodeGraph, tableGOs, dxCharacterized, graphGO,
                         kernelSVM = "radial") {
-    print(nodeGraph)
+    message("GO-term: ", nodeGraph)
     tableGOs <- tableGOs[order(rownames(tableGOs)), ]
     dxCharacterized <- dxCharacterized[order(rownames(dxCharacterized)), ]
     modelSvm_reduce <- c()

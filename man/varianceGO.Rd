@@ -47,11 +47,16 @@ mygraphGO <- as(CfData[["graphCfGO"]], "graphNEL")
 
 rootGO <- leaves(mygraphGO, "in")
 
-\donttest{
-varianceGOs <- varianceGO(tableGOs = CfData[["tableCfGO"]],
+mygraphGO <- subGraph(c("GO:0140110", "GO:0098772", "GO:0003674"), mygraphGO)
+
+myTableGO <- CfData[["tableCfGO"]][
+                    CfData[["indexGO"]]$indexTrain,
+                    c("GO:0140110", "GO:0098772", "GO:0003674")]
+
+varianceGOs <- varianceGO(tableGOs = myTableGO,
                             dxCharacterized = CfData[["dxCf"]],
-                            kFold = 5, graphGO = mygraphGO,
+                            kFold = 2, graphGO = mygraphGO,
                             rootNode = rootGO, kernelSVM = "radial")
-}}
+}
 
 \keyword{variance}

@@ -50,22 +50,19 @@ data(CfData)
 
 mygraphGO <- as(CfData[["graphCfGO"]], "graphNEL")
 
-\donttest{
-modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain,
-                    tableGOs = CfData[["tableCfGO"]],
+myTableGO <- CfData[["tableCfGO"]][
+                    CfData[["indexGO"]]$indexTrain[1:500], ]
+
+modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain, tableGOs = myTableGO,
                     dxCharacterized = CfData[["dxCf"]],
-                    graphGO = mygraphGO,
-                    kernelSVM = "radial")
+                    graphGO = mygraphGO, kernelSVM = "radial")
 
 rootGO <- leaves(mygraphGO, "in")
 
-varianceGOs <- varianceGO(tableGOs = CfData[["tableCfGO"]],
-                            dxCharacterized = CfData[["dxCf"]],
-                            kFold = 5, graphGO = mygraphGO,
-                            rootNode = rootGO, kernelSVM = "radial")
+varianceGOs <- CfData[["varianceGOs"]]
 
-dxTestCharacterized <- CfData[["dxCf"]][sample(
-                                        1:dim(CfData[["dxCf"]])[2], 20), ]
+dxTestCharacterized <- CfData[["dxCf"]][
+                                sample(1:dim(CfData[["dxCf"]])[2], 2), ]
 
 matrixGOTest <- svmGO(svmMoldel = modelSVMs,
                         dxCharacterized = dxTestCharacterized,
@@ -75,8 +72,8 @@ modelFGGA <- fgga2bipartite(mygraphGO)
 
 matrixFGGATest <- t(apply(matrixGOTest, MARGIN = 1, FUN = msgFGGA,
                     matrixFGGA = modelFGGA, graphGO= mygraphGO,
-                    tmax = 50, epsilon = 0.001))
+                    tmax = 50, epsilon = 0.1))
 
-}}
+}
 
 \keyword{msgFGGA}

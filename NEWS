@@ -1,13 +1,11 @@
-CHANGES
+# Updates
 
+## fgga 0.99.2
 
-USER VISIBLE CHANGES
-
-    
-BUG FIXES
-
-
-PLANS
-
-    
+---------------------
+* Created initial github page.
+* Created package.
+* Created vignettes.
+* Checked package... passed R CMD check and BiocCheck.
+* Ready to submit to Bioconductor. 
 

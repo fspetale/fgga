@@ -63,7 +63,7 @@ devtools::install_github("fspetale/fgga")
 
 After the package is installed, it can be loaded into R workspace by
 
-```{r setup, eval = TRUE}
+```{r setup, eval = TRUE, message=FALSE}
 library(fgga)
 ```
 # Input data
@@ -117,7 +117,7 @@ apply(CfData$tableCfGO, MARGIN=2, sum)
 
 If we want to predict GO-terms in a single subdomain, *BP, MF or CC* , we must build the GO-DAG associated with these GO-terms.
 
-```{r, message = FALSE, eval = FALSE}
+```{r, message = FALSE, eval = TRUE}
 library(GO.db)
 library(GOstats)
 
@@ -135,11 +135,8 @@ rootGO <- leaves(mygraphGO, "in")
 
 rootGO
 
-## [1] "GO:0003674"
-
 plot(mygraphGO)
 ```
-![Fig. 2 - GO-MF subgraph.](go.png)
 
 On the other hand, if you want to predict in two or three subdomains you should use the preCoreFG function. This function builds a graph respecting the GO constraints of inference and also links the GO-terms of the selected subdomains.
 
@@ -173,9 +170,9 @@ modelFGGA <- fgga2bipartite(mygraphGO)
 
 Now, let's use the MF subgraph to build our model of binary SVM classifiers with a training set of the Cf data.
 
-```{r message=FALSE, include=FALSE}
+```{r, message = FALSE, eval = TRUE}
 # We take a subset of Cf data to train our model
-idsTrain <- CfData$indexGO[["indexTrain"]]
+idsTrain <- CfData$indexGO[["indexTrain"]][1:750]
 
 # We build our model of binary SVM classifiers
 modelSVMs <- lapply(CfData[["nodesGO"]], FUN = svmTrain, 
@@ -204,7 +201,7 @@ Next, we predict each GO-terms from a test set using our model of binary SVM cla
 
 ```{r, message = FALSE, eval = TRUE}
 
-dxTestCharacterized <- CfData[["dxCf"]][CfData$indexGO[["indexTest"]], ]
+dxTestCharacterized <- CfData[["dxCf"]][CfData$indexGO[["indexTest"]][1:50], ]
 
 matrixGOTest <- svmGO(svmMoldel = modelSVMs, 
                     dxCharacterized = dxTestCharacterized, 
@@ -218,16 +215,10 @@ head(matrixGOTest)[,1:8]
 
 Once a factor graph model *FG* for the automated GO annotation problem has been defined, an iterative message passing algorithm between nodes of *FG* can be used to compute maximum a posteriori (MAP) estimates of variable nodes $x_i$ modeling actual *GO:i* annotations.
 
-```{r eval=FALSE, message=FALSE}
-matrixFGGATest <- t(apply(matrixGOTest, MARGIN = 1, FUN = msgFGGA, 
-                        matrixFGGA = modelFGGA, graphGO = mygraphGO,
-                        tmax = 50, epsilon = 0.001))
-```
-
 The function *msgFGGA* returns a matrix with *k* rows and *m* columns corresponding to the Cf proteins and MF GO-terms respectively. 
 
-```{r echo=TRUE, message=FALSE}
-matrixFGGATest <- t(apply(matrixGOTest[1:100, ], MARGIN = 1, FUN = msgFGGA, 
+```{r message = FALSE, eval = TRUE}
+matrixFGGATest <- t(apply(matrixGOTest, MARGIN = 1, FUN = msgFGGA, 
                         matrixFGGA = modelFGGA, graphGO = mygraphGO,
                         tmax = 50, epsilon = 0.001))
 
@@ -255,7 +246,7 @@ HP(s) = \frac{1}{\mid l(P_{G}(s)) \mid} \hspace{1.25mm} \sum_{q \hspace{0.5mm} \
 
 Finally, we evaluate the performance of *FGGA* in terms of Area under the ROC Curve (AUC) and in terms of Precision at x Recall level (PxR). We use the R package [PerfMeas](https://cran.r-project.org/web/packages/PerfMeas), which provides functions to compute the performance measures we need.
 
-```{r, message = FALSE, eval = FALSE}
+```{r, message = FALSE, eval = TRUE}
 library(PerfMeas)
 
 for (i in 1:dim(matrixFGGATest)[1]){
@@ -264,20 +255,15 @@ for (i in 1:dim(matrixFGGATest)[1]){
 }
 
 # Computing F-score
-Fs <- F.measure.single.over.classes(CfData$tableCfGO[rownames(matrixFGGATest), ],
-                                    matrixFGGATest)
+Fs <- F.measure.single.over.classes(
+        CfData$tableCfGO[rownames(matrixFGGATest), ], matrixFGGATest)
 
 # Average F-score
 Fs$average[4]
 
-##         F 
-## 0.4379346
-
 # Computing AUC
 auc <- AUC.single.over.classes(CfData$tableCfGO[rownames(matrixFGGATest), ],
                                 matrixFGGATest);
-
-## [1] 0.7090067
 
 # Average AUC
 auc$average
@@ -290,10 +276,6 @@ PXR <- precision.at.multiple.recall.level.over.classes(
 # Average PxR
 PXR$avgPXR
 
-##       0.1       0.2       0.3       0.4       0.5       0.6       0.7
-## 0.5750548 0.5915842 0.5841248 0.5626482 0.5360041 0.5083309 0.4702906 
-##        0.8       0.9         1 
-##  0.4275149 0.3762800 0.3066687
 ```
 
 # References

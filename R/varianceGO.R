@@ -2,13 +2,12 @@ varianceGO <- function(tableGOs, dxCharacterized, kFold, graphGO, rootNode,
                         kernelSVM = "radial") {
     tableGOs <- as.matrix(tableGOs[order(rownames(tableGOs)), ])
     dxCharacterized <- as.data.frame(dxCharacterized[order(rownames(
-        dxCharacterized
-    )), ])
+        dxCharacterized)), ])
     nodesGraph <- colnames(tableGOs)
     variance <- array(0, length(nodesGraph))
     names(variance) <- nodesGraph
     for (j in seq_len(length(nodesGraph))) {
-        print(nodesGraph[j])
+        message("GO-term:" ,nodesGraph[j])
         if (nodesGraph[j] != rootNode) {
             checkPosiSample <- length(which(tableGOs[, j] == 1))
             if (checkPosiSample > 1) {
