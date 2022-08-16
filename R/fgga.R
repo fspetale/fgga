@@ -1,31 +1,26 @@
-fgga <- function(graphGO, tableGOs, dxCharacterized, dxTestCharacterized,
-                    kFold, kernelSVM = "radial", tmax = 200, epsilon = 0.001) {
-    goNodes <- nodes(graphGO)
-    rootGO <- leaves(graphGO, "in")
-    modelSVMs <- lapply(goNodes,
-        FUN = svmTrain, tableGOs = tableGOs,
-        dxCharacterized = dxCharacterized,
-        graphGO = graphGO, kernelSVM = kernelSVM
-    )
+fgga <- function(graphOnto, tableOntoTerms, dxCharacterized,
+                dxTestCharacterized, kFold, kernelSVM = "radial", tmax = 200,
+                epsilon = 0.001) {
+    ontoNodes <- nodes(graphOnto)
+    rootOnto <- leaves(graphOnto, "in")
+    modelSVMs <- lapply(ontoNodes,
+        FUN = svmTrain, tableOntoTerms = tableOntoTerms,
+        dxCharacterized = dxCharacterized, graphOnto = graphOnto,
+        kernelSVM = kernelSVM)
 
-    varianceGOs <- varianceGO(
-        tableGOs, dxCharacterized, kFold, graphGO,
-        rootGO, kernelSVM
-    )
+    varianceOntoTerms <- varianceOnto(tableOntoTerms, dxCharacterized,
+                                kFold, graphOnto, rootOnto, kernelSVM)
 
-    matrixGOTest <- svmGO(
-        svmMoldel = modelSVMs,
-        dxCharacterized = dxTestCharacterized,
-        rootNode = rootGO, varianceSVM = varianceGOs
-    )
+    matrixOntoTest <- svmOnto(svmMoldel = modelSVMs,
+                                dxCharacterized = dxTestCharacterized,
+                                rootNode = rootOnto,
+                                varianceSVM = varianceOntoTerms)
 
-    modelFG <- fgga2bipartite(graphGO)
+    modelFG <- fgga2bipartite(graphOnto)
 
-    matrixFGGATest <- t(apply(matrixGOTest,
-        MARGIN = 1, FUN = msgFGGA,
-        matrixFGGA = modelFG, graphGO = graphGO,
-        tmax = tmax, epsilon = epsilon
-    ))
+    matrixFGGATest <- t(apply(matrixOntoTest, MARGIN = 1, FUN = msgFGGA,
+        matrixFGGA = modelFG, graphOnto = graphOnto, tmax = tmax,
+        epsilon = epsilon))
 
     return(matrixFGGATest)
 }

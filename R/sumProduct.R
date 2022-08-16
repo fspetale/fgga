@@ -8,9 +8,9 @@
     return(valueProduct)
 }
 
-msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
+msgFGGA <- function(matrixFGGA, obsValueOntoTerms, graphOnto, tmax = 200,
                     epsilon = 0.001) {
-    if (is(matrixFGGA) != "fgga") {
+    if (!is(matrixFGGA, 'fgga')){
         message("matrixFGGA is not class fgga")
         return()
     } else {
@@ -18,50 +18,44 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
     }
     nFactors <- dim(matrixFGGA)[2]
     nNodes <- dim(matrixFGGA)[1] / 2
-    matrixGO <- as(graphGO, "matrix")
+    matrixOnto <- as(graphOnto, "matrix")
     matrixNodeToFunction <- array(data = list(), dim = c(nNodes, nFactors))
     matrixFunctionToNode <- array(data = list(), dim = c(nFactors, nNodes))
     rownames(matrixNodeToFunction) <- rownames(matrixFGGA)[seq_len(nNodes)]
     colnames(matrixFunctionToNode) <- rownames(matrixFGGA)[seq_len(nNodes)]
     colnames(matrixNodeToFunction) <- colnames(matrixFGGA)
     rownames(matrixFunctionToNode) <- colnames(matrixFGGA)
-    nParents <- apply(matrixGO, MARGIN = 1, sum)
-    nParents <- sort(unique(nParents))[-1]
-    functionsTPG <- lapply(nParents + 1, FUN = tableTPG)
-    names(functionsTPG) <- vapply(nParents, FUN = function(att) {
-        (paste("TPG", att, sep = "", collapse = ""))}, character(1))
 
     # Initialization
     for (i in seq_len(dim(matrixFunctionToNode)[2])) {
         matrixFunctionToNode[nNodes - 1 + i, i][[1]] <- list(
-            zeroValues = 1 - obsValueGOs[i],
-            oneValues = obsValueGOs[i], valueGO = 1)
+            zeroValues = 1 - obsValueOntoTerms[i],
+            oneValues = obsValueOntoTerms[i], valueOnto = 1)
         if (i < nNodes) {
             nodeLinks <- which(matrixFGGA[, i] == 1)
-            submatrixGO <- matrixGO[nodeLinks, nodeLinks]
-            leafGO <- names(which(apply(submatrixGO, MARGIN = 1, sum) == 0))
-            parentsGO <- setdiff(colnames(submatrixGO), leafGO)
-#           functionLink <- t(sapply(names(nodeLinks), FUN = function(x, y, w){
+            submatrixOnto <- matrixOnto[nodeLinks, nodeLinks]
+            leafOnto <- names(which(apply(submatrixOnto, MARGIN = 1, sum) == 0))
+            parentsOnto <- setdiff(colnames(submatrixOnto), leafOnto)
             functionLink <- t(apply(t(names(nodeLinks)), MARGIN=2,
                 FUN = function(x, y, w) {(if (x == w) setdiff(y, x) else c(
-                w, setdiff(y, c(x, w))))}, w = leafGO, y = names(nodeLinks)))
+                w, setdiff(y, c(x, w))))}, w = leafOnto, y = names(nodeLinks)))
             for (k in seq_len(length(nodeLinks))) {
                     if (length(nodeLinks) > 2) {
                         matrixFunctionToNode[i, nodeLinks[k]][[1]] <-
                             list(zeroValues = 1, oneValues = 1,
-                            neighbor = functionLink[k, ], leafGO = leafGO,
-                            parentsGO = parentsGO, TPG = length(nodeLinks) - 1)
+                            neighbor = functionLink[k, ], leafOnto = leafOnto,
+                            parentsOnto = parentsOnto,
+                            TPG = length(nodeLinks) - 1)
                     } else {
                         matrixFunctionToNode[i, nodeLinks[k]][[1]] <- list(
                             zeroValues = 1,
                             oneValues = 1, neighbor = functionLink[1, k],
-                            leafGO = leafGO, parentsGO = parentsGO,
+                            leafOnto = leafOnto, parentsOnto = parentsOnto,
                             TPG = length(nodeLinks) - 1)
                     }
             }
         }
         nodeLinks <- which(matrixFGGA[i, ] == 1)
-#        functionLink <- t(sapply(names(nodeLinks), FUN = function(x, y) {
         functionLink <- t(apply(t(names(nodeLinks)), MARGIN=2,
             FUN = function(x, y) {(setdiff(y, x))}, y = names(nodeLinks)))
         for (k in seq_len(length(nodeLinks))) {
@@ -75,7 +69,7 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
                 }
         }
     }
-    rm(submatrixGO, leafGO, parentsGO)
+    rm(submatrixOnto, leafOnto, parentsOnto)
     for (t in seq_len(tmax)) {
         # Msg node variable to function
         for (i in seq_len(nNodes)) {
@@ -106,13 +100,13 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
         for (i in seq_len(nNodes - 1)) {
             activeFunction <- which(matrixFGGA[, i] == 1)
             for (j in seq_len(length(activeFunction))) {
-                if (matrixFunctionToNode[i, activeFunction[j]][[1]]$leafGO ==
+                functionsTPG <- tableTPG(matrixFunctionToNode[i,
+                                        activeFunction[j]][[1]]$TPG+1)
+                if (matrixFunctionToNode[i, activeFunction[j]][[1]]$leafOnto ==
                     colnames(matrixFunctionToNode)[activeFunction[j]]) {
                     for (k in seq(1, 2)) {
-                        indexMsg <- which(functionsTPG[[matrixFunctionToNode[i,
-                            activeFunction[j]][[1]]$TPG]][, 1] == k)
-                        subMatrixTPG <- functionsTPG[[matrixFunctionToNode[i,
-                            activeFunction[j]][[1]]$TPG]][indexMsg, -1]
+                        indexMsg <- which(functionsTPG[, 1] == k)
+                        subMatrixTPG <- functionsTPG[indexMsg, -1]
                         if (is.matrix(subMatrixTPG)) {
                             valuesMsg <- apply(subMatrixTPG,
                                 MARGIN = 1, FUN = .productMsg,
@@ -138,10 +132,8 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
                     }
                 } else {
                     for (k in seq(1, 2)) {
-                        indexMsg <- which(functionsTPG[[matrixFunctionToNode[i,
-                                    activeFunction[j]][[1]]$TPG]][, 2] == k)
-                        subMatrixTPG <- functionsTPG[[matrixFunctionToNode[i,
-                            activeFunction[j]][[1]]$TPG]][indexMsg, -2]
+                        indexMsg <- which(functionsTPG[, 2] == k)
+                        subMatrixTPG <- functionsTPG[indexMsg, -2]
                         if (is.matrix(subMatrixTPG)) {
                             valuesMsg <- apply(subMatrixTPG, MARGIN = 1,
                                     FUN = .productMsg, index1 = i,
@@ -174,33 +166,34 @@ msgFGGA <- function(matrixFGGA, obsValueGOs, graphGO, tmax = 200,
                         gammaMsg
             }
         }
-        valuesGO <- lapply(diag(matrixNodeToFunction[, seq(nNodes, nFactors)]),
-            FUN = function(x) (x[c(1, 2)]))
-        oneValuesGO <- vapply(seq(1, nNodes), FUN = function(x, y, z) {
-            (y[[x]]$oneValues * z[x])}, y = valuesGO, z = obsValueGOs,
+        ValuesOnto <- lapply(diag(matrixNodeToFunction[,
+            seq(nNodes, nFactors)]), FUN = function(x) (x[c(1, 2)]))
+        oneValuesOnto <- vapply(seq(1, nNodes), FUN = function(x, y, z) {
+            (y[[x]]$oneValues * z[x])}, y = ValuesOnto, z = obsValueOntoTerms,
             FUN.VALUE = numeric(1))
-        zeroValuesGO <- vapply(seq(1, nNodes), FUN = function(x, y, z) {
-            (y[[x]]$zeroValues * (1 - z[x]))}, y = valuesGO, z = obsValueGOs,
+        zeroValuesOnto <- vapply(seq(1, nNodes), FUN = function(x, y, z) {
+            (y[[x]]$zeroValues * (1 - z[x]))}, y = ValuesOnto,
+            z = obsValueOntoTerms, FUN.VALUE = numeric(1))
+        oneValuesOnto <- vapply(seq(1, nNodes), FUN = function(x, y, z) {
+            (y[x] / (y[x] + z[x]))}, y = oneValuesOnto, z = zeroValuesOnto,
             FUN.VALUE = numeric(1))
-        oneValuesGO <- vapply(seq(1, nNodes), FUN = function(x, y, z) {
-            (y[x] / (y[x] + z[x]))}, y = oneValuesGO, z = zeroValuesGO,
+        ValuesOnto <- vapply(diag(matrixFunctionToNode[
+            seq(nNodes, nFactors), ]), FUN = function(x) (x$valueOnto),
             FUN.VALUE = numeric(1))
-        valuesGO <- vapply(diag(matrixFunctionToNode[seq(nNodes, nFactors), ]),
-            FUN = function(x) (x$valueGO), FUN.VALUE = numeric(1))
         errorGO <- vapply(seq(1, nNodes), FUN = function(x, y, z) {
-            (abs(y[x] - z[x]))}, y = oneValuesGO, z = valuesGO,
+            (abs(y[x] - z[x]))}, y = oneValuesOnto, z = ValuesOnto,
             FUN.VALUE = numeric(1))
         if (max(errorGO) < epsilon) {
-            names(oneValuesGO) <- colnames(matrixFunctionToNode)
-            return(oneValuesGO)
+            names(oneValuesOnto) <- colnames(matrixFunctionToNode)
+            return(oneValuesOnto)
         } else {
             for (i in seq_len(nNodes)) {
-                matrixFunctionToNode[nNodes - 1 + i, i][[1]]$valueGO <-
-                    oneValuesGO[i]}
+                matrixFunctionToNode[nNodes - 1 + i, i][[1]]$valueOnto <-
+                    oneValuesOnto[i]}
         }
     }
-    valuesGO <- array(0, nNodes)
-    names(valuesGO) <- colnames(matrixFunctionToNode)
+    ValuesOnto <- array(0, nNodes)
+    names(ValuesOnto) <- colnames(matrixFunctionToNode)
     message("Graph UNCONVERGED")
-    return(valuesGO)
+    return(ValuesOnto)
 }
