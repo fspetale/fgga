@@ -1,15 +1,14 @@
 Package: fgga
 Type: Package
 Title: Hierarchical ensemble method based on factor graph
-Version: 0.99.2
-Date: 2021-05-06
-Authors@R: c(person("Spetale", "Flavio", email = "spetale@cifasis-conicet.gov.ar", role = c("aut", "cre")),
-	     person("Elizabeth", "Tapia", role = c("aut", "ctb")))
+Version: 1.6.0
+Date: 2022-07-13
+Authors@R: c(person("Flavio", "Spetale", email = "spetale@cifasis-conicet.gov.ar", role = c("aut", "cre")))
 biocViews: Software, StatisticalMethod, Classification, Network, NetworkInference, SupportVectorMachine, GraphAndNetwork, GO
-Description: Package that implements the FGGA algorithm. This package provides a hierarchical ensemble method based ob factor graphs for the consistent GO annotation of protein coding genes. FGGA embodies elements of predicate logic, communication theory, supervised learning and inference in graphical models.
-Depends: R (>= 4.1), RBGL
+Description: Package that implements the FGGA algorithm. This package provides a hierarchical ensemble method based ob factor graphs for the consistent cross-ontology annotation of protein coding genes. FGGA embodies elements of predicate logic, communication theory, supervised learning and inference in graphical models.
+Depends: R (>= 4.2), RBGL
 Imports: graph, stats, e1071, methods, gRbase, jsonlite, BiocFileCache, curl
-Suggests: knitr, rmarkdown, GOstats, PerfMeas, GO.db, BiocGenerics
+Suggests: knitr, rmarkdown, GOstats, GO.db, BiocGenerics, pROC, RUnit
 License: GPL-3
 URL: https://github.com/fspetale/fgga
 Encoding: UTF-8

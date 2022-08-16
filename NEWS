@@ -1,11 +1,10 @@
 # Updates
 
-## fgga 0.99.2
+Changes in version 0.99.2 (2021-04-13)
++ Submitted to Bioconductor
 
----------------------
-* Created initial github page.
-* Created package.
-* Created vignettes.
-* Checked package... passed R CMD check and BiocCheck.
-* Ready to submit to Bioconductor. 
-
+Changes in version 1.5.0 (2022-07-13)
++ Made the following significant changes
+  o changed the names of the varianceSVM and svmSVM functions to varianceOnto and svmOnto respectively
+  o added the PO, ZFA and HPO ontologies to the preCoreFG function
+  o added functions to evaluate the performance of the classification process
