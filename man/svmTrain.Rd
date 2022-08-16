@@ -1,24 +1,24 @@
 \name{svmTrain}
 \alias{svmTrain}
 \title{
-Binary SVM classification models for individual GO-term predictions
+Binary SVM classification models for individual Ontology-term predictions
 }
 \description{
-svmTrain delivers a set of binary SVM classifiers for different GO-terms.
+svmTrain delivers a set of binary SVM classifiers for different Ontology-terms.
 }
 \usage{
-svmTrain(nodeGraph, tableGOs, dxCharacterized, graphGO,
+svmTrain(nodeGraph, tableOntoTerms, dxCharacterized, graphOnto,
         kernelSVM = "radial")
 }
 
 \arguments{
     \item{nodeGraph}{A character indicating a GO node label}
 
-    \item{tableGOs}{A binary matrix with `n' proteins (rows) by `m' GO node labels (columns).}
+    \item{tableOntoTerms}{A binary matrix with `n' proteins (rows) by `m' Ontology node labels (columns).}
 
     \item{dxCharacterized}{A data frame with `n' protein coding genes (rows) by `f' features (columns).}
 
-    \item{graphGO}{A graphNEL graph with `m' GO node labels.}
+    \item{graphOnto}{A graphNEL graph with `m' Ontology node labels.}
 
     \item{kernelSVM}{The kernel used to calculate the variance (default: radial).}
 }
@@ -43,7 +43,7 @@ Flavio E. Spetale, Pilar Bulacio and Javier Murillo <spetale@cifasis-conicet.gov
 }
 
 \seealso{
-\code{\link[fgga]{svmGO}}
+\code{\link[fgga]{svmOnto}}
 }
 \examples{
 data(CfData)
@@ -52,9 +52,9 @@ mygraphGO <- as(CfData[["graphCfGO"]], "graphNEL")
 
 # SVM training in four GO-terms
 modelSVMs <- lapply(CfData[["nodesGO"]][1:4], FUN = svmTrain,
-                    tableGOs = CfData[["tableCfGO"]],
+                    tableOntoTerms = CfData[["tableCfGO"]],
                     dxCharacterized = CfData[["dxCf"]],
-                    graphGO = mygraphGO, kernelSVM = "radial")
+                    graphOnto = mygraphGO, kernelSVM = "radial")
 
 }
 

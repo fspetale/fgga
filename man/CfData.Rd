@@ -9,8 +9,7 @@ evidence.
 \description{
 The CfData dataset consists of a list containing the following:
 
-\emph{$dxCf}: characterizations of \emph{6962} protein coding genes in terms of \emph{72} physico-chemical properties of their amino acid sequences.
-These sequences, obtained from the Uniprot database, are annotated to \emph{36} GO-terms of the GO Molecular Function (GO-MF) ontology subdomain.
+\emph{$dxCf}: characterizations of \emph{6962} protein coding genes in terms of \emph{72} physico-chemical properties of their amino acid sequences. These sequences, obtained from the Uniprot database, are annotated to \emph{36} GO-terms of the GO Molecular Function (GO-MF) ontology subdomain.
 
 \emph{$tableCfGO}: a set of \emph{6962} protein coding genes annotated to GO-MF target classes. Genes are identified by their \bold{Uniprot} ID mappings which are obtained with the org.Cf.eg.db annotation package set to work with both experimental and electronic evidence. Additionally, only those GO-MF terms with at least \emph{500} annotated genes were preserved.
 

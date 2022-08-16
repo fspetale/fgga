@@ -7,11 +7,11 @@ Forney Factor Graph model
 fgga2bipartite builds a Forney Factor Graph from a FGGA model.
 }
 \usage{
-fgga2bipartite(graphGO)
+fgga2bipartite(graphOnto)
 }
 
 \arguments{
-    \item{graphGO}{A graphNEL graph with `m' GO node labels.}
+    \item{graphOnto}{A graphNEL graph with `m' cross-Ontology node labels.}
 }
 
 \details{
@@ -19,7 +19,7 @@ The \bold{Gene Ontology} (GO) is structured as a directed acyclic graph (DAG) wi
 }
 
 \value{
-A binary matrix with \emph{2*m} rows by \emph{2*m-1} columns where \emph{m} is the quantity of GO node labels.
+A binary matrix with \emph{2*m} rows by \emph{2*m-1} columns where \emph{m} is the quantity of cross-Ontology node labels.
 }
 
 \references{

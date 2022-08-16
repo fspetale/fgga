@@ -12,7 +12,7 @@ createFolds(target, k_fold = 10)
 }
 
 \arguments{
-    \item{target}{A binary vector of a GO class}
+    \item{target}{A binary vector of a Ontology class}
 
     \item{k_fold}{An integer for the number of folds}
 }

@@ -12,10 +12,10 @@ tableTPG(att)
 }
 
 \arguments{
-    \item{att}{An integer indicating the number of GO nodes involved}
+    \item{att}{An integer indicating the number of cross-Ontology nodes involved}
 }
 \details{
-Valid configurations of hidden variable nodes at logical function nodes enable messaging passing across the Forney Factor Graph. The TPG constraint is defined as: “If the child GO node describes the protein, then all its parent terms must also apply to that protein; and if a GO node does not describe a protein, then all its descendant GO nodes must not describe it”. The TPG constraint governs the structure of the GO-DAG and the inference process in the associated Forney Factor Graph.
+Valid configurations of hidden variable nodes at logical function nodes enable messaging passing across the Forney Factor Graph. The TPG constraint is defined as: “If the child Ontology node describes the protein, then all its parent terms must also apply to that protein; and if a Ontology node does not describe a protein, then all its descendant Ontology nodes must not describe it”. The TPG constraint governs the structure of the Ontology-DAG and the inference process in the associated Forney Factor Graph.
 }
 
 \value{

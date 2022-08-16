@@ -1,26 +1,26 @@
 \name{preCoreFG}
 \alias{preCoreFG}
-\title{Transitive closure processing of a GO DAG}
+\title{Transitive closure processing of a cross-ontology DAG}
 \description{
-preCoreFG ensures the transitive closure of inference paths -serial concatenation of relationships- in a GO DAG.}
+preCoreFG ensures the transitive closure of inference paths -serial concatenation of relationships- in a cross-ontology DAG.}
 
 \usage{
-preCoreFG(myGOnames, domains = "goPlus")
+preCoreFG(ontoTerms, domains = "GO")
 }
 
 \arguments{
-    \item{myGOnames}{A vector with `m' GO node labels}
+    \item{ontoTerms}{A vector with `m' cross-ontology node labels}
 
-    \item{domains}{A string that indicates which subdomains will be used. Values: ``BP-MF", ``MF-CC", ``BP-CC" or ``goPlus" (default, ``BP-MF-CC")}
+    \item{domains}{A string that indicates which subdomains or ontologies will be used. Values: ``GOBP", ``GOMF", ``GOCC", ``GOCC-PO", ``GOCC-ZFA", ``GOBP-HPO", ``GOMF-HPO", ``GOCC-HPO", ``GO-PO", ``GO-ZFA", ``GO-HPO", ``GO" (default, ``BP-MF-CC")}
 
 }
 
 \details{
-Non-transitive relationships in GO DAG's may lead to non-transitive inference paths precluding the free propagation and consistency checking of GO annotations. A transitive closure screening process over GO DAG's relationships is required before the construction of Forney Factor Graphs. Serial concatenation of relationships leading to non-transitive inference paths in a GO DAG are conformed by removing the most specific relationship.
+Non-transitive relationships in cross-ontology DAG's may lead to non-transitive inference paths precluding the free propagation and consistency checking of ontology annotations. A transitive closure screening process over cross-ontology DAG's relationships is required before the construction of Forney Factor Graphs. Serial concatenation of relationships leading to non-transitive inference paths in a cross-ontology DAG are conformed by removing the most specific relationship.
 }
 
 \value{
-A graphNEL graph with `m' GO node labels.
+A graphNEL graph with `m' node labels belong to ontologies used.
 }
 
 \references{
@@ -41,8 +41,7 @@ myGOs <- c(CfData[["nodesGO"]], "GO:1902494", "GO:0032991", "GO:1990234",
             "GO:0005575")
 
 \donttest{
-mygraphGO <- preCoreFG(myGOs, domains = "MF-CC")
+# mygraphGO <- preCoreFG(myGOs, domains = "GOMF")
 }}
 
 \keyword{msgFFGA}
-
