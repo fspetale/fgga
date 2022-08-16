@@ -26,7 +26,7 @@ test_msg <- function() {
   mT[ , 1] <- 0.9999
 
   mR <- t(apply(mT, MARGIN = 1, FUN = msgFGGA, matrixFGGA = mF,
-                            graphGO= g, tmax = 50, epsilon = 0.001))
+                            graphOnto = g, tmax = 50, epsilon = 0.001))
 
   checkEquals(length(mR), 20)
   checkIdentical(rownames(mR)[1], "IDT1", "Incorrect Test")
