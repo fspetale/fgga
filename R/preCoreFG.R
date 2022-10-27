@@ -1,250 +1,260 @@
 .onLoad <- function(libname = NULL, pkgname="fgga"){
-    btc <- NULL
-    assign('bfc',BiocFileCache() , envir = .GlobalEnv)
+  btc <- NULL
+  assign('bfc',BiocFileCache() , envir = .GlobalEnv)
 }
 
 .getCache <- function(url, nameGO){
-    verbose <- has_internet()
-    rid <- bfcquery(bfc, nameGO, "rname")$rid
-    if (!length(rid)) {
-        if(verbose) {
-            message("Downloading ", nameGO)
-            rid <- names(bfcadd(bfc, nameGO, url))}}
+  verbose <- has_internet()
+  rid <- bfcquery(bfc, nameGO, "rname")$rid
+  if (!length(rid)) {
+    if(verbose) {
+      message("Downloading ", nameGO)
+      rid <- names(bfcadd(bfc, nameGO, url))}}
 
-    if (!isFALSE(bfcneedsupdate(bfc, rid))) bfcdownload(bfc, rid)
+  if (!isFALSE(bfcneedsupdate(bfc, rid))) bfcdownload(bfc, rid)
 
-    return (bfcrpath(bfc, rids = rid))
+  return (bfcrpath(bfc, rids = rid))
 }
 
 .goPlusList <- function(relationship, goPlus) {
-    goRelation <- lapply(goPlus, FUN = function(x) {
-        (x[intersect(intersect(grep( relationship, x$pred), grep("GO_", x$sub)),
-                    grep("GO_", x$obj)), ])})
-    indexList <- which(lapply(goRelation,
+  goRelation <- lapply(goPlus, FUN = function(x) {
+    (x[intersect(intersect(grep( relationship, x$pred), grep("GO_", x$sub)),
+                 grep("GO_", x$obj)), ])})
+  indexList <- which(lapply(goRelation,
                             FUN = function(x) (length(x$obj))) > 0)
-    goRelation <- do.call("rbind", goRelation[indexList])
-    goRelation <- apply(goRelation, MARGIN = 2, FUN = function(x) {
-        (gsub("http://purl.obolibrary.org/obo/GO_", "GO:", x))})
-    return(goRelation)
+  goRelation <- do.call("rbind", goRelation[indexList])
+  goRelation <- apply(goRelation, MARGIN = 2, FUN = function(x) {
+    (gsub("http://purl.obolibrary.org/obo/GO_", "GO:", x))})
+  return(goRelation)
 }
 
 .goPlusInfo <- function() {
-    message("Read  GO-plus")
-    url <- .getCache(
-        "http://purl.obolibrary.org/obo/go/extensions/go-plus.json", "goPlus")
-    if (length(url)==0) stop("Neither internet connection nor cached GO data")
-    goTermInfo <- fromJSON(url, simplifyVector = TRUE)
-    codeRelations <- c("is_a", "BFO_0000050", "BFO_0000066", "RO_0002211",
-        "RO_0002212", "RO_0002213", "RO_0002215", "RO_0002216")
-    nameRelations <- c("is_a", "part_of", "occurs_in", "regulates",
-                        "negatively_regulates", "positively_regulates",
-                        "capable_of", "capable_of_part_of")
-    goPlus <- lapply(codeRelations,
-                    FUN = .goPlusList, goPlus = goTermInfo$graphs$edges)
-    indexGOTerms <- seq(2, length(nameRelations))
-    goPlusEdges <- lapply(seq_len(length(nameRelations)),
+  message("Read  GO-plus")
+  url <- .getCache(
+    "http://purl.obolibrary.org/obo/go/extensions/go-plus.json", "goPlus")
+  if (length(url)==0) stop("Neither internet connection nor cached GO data")
+  goTermInfo <- fromJSON(url, simplifyVector = TRUE)
+  codeRelations <- c("is_a", "BFO_0000050", "BFO_0000066", "RO_0002211",
+                     "RO_0002212", "RO_0002213", "RO_0002215", "RO_0002216")
+  nameRelations <- c("is_a", "part_of", "occurs_in", "regulates",
+                     "negatively_regulates", "positively_regulates",
+                     "capable_of", "capable_of_part_of")
+  goPlus <- lapply(codeRelations,
+                   FUN = .goPlusList, goPlus = goTermInfo$graphs$edges)
+  indexGOTerms <- seq(2, length(nameRelations))
+  goPlusEdges <- lapply(seq_len(length(nameRelations)),
                         FUN = function(x, y, z) {x[[z]][, 2] <- y[z]
                         return(x[[z]])}, x = goPlus, y = nameRelations)
-    goPlusMatrixEdges <- do.call("rbind", goPlusEdges)
-    goPlusMatrixEdges <- cbind(goPlusMatrixEdges,
-                            matrix(0, dim(goPlusMatrixEdges)[1], 3))
+  goPlusMatrixEdges <- do.call("rbind", goPlusEdges)
+  goPlusMatrixEdges <- cbind(goPlusMatrixEdges,
+                             matrix(0, dim(goPlusMatrixEdges)[1], 3))
 
-    goTerms <- vapply(goTermInfo$graphs$nodes, FUN = function(x) {
-        (gsub("http://purl.obolibrary.org/obo/GO_", "GO:", x$id))},
-        FUN.VALUE = character(dim(goTermInfo$graphs$nodes[[1]])[1]))
-    goDomains <- vapply(goTermInfo$graphs$nodes[[1]]$meta$basicPropertyValues,
-            FUN = function(x) {y <- grep(
-            "biological_process|molecular_function|cellular_component", x$val)
-                if (length(y) > 0) {return(
-                switch(x$val[y], "biological_process" = "GOBP",
-                "molecular_function" = "GOMF", "cellular_component" = "GOCC"))
-                } else {return("")}}, FUN.VALUE = character(1))
+  goTerms <- vapply(goTermInfo$graphs$nodes, FUN = function(x) {
+    (gsub("http://purl.obolibrary.org/obo/GO_", "GO:", x$id))},
+    FUN.VALUE = character(dim(goTermInfo$graphs$nodes[[1]])[1]))
+  goDomains <- vapply(goTermInfo$graphs$nodes[[1]]$meta$basicPropertyValues,
+              FUN = function(x) {y <- grep(
+              "biological_process|molecular_function|cellular_component", x$val)
+                  if (length(y) > 0) {return(
+                    switch(x$val[y], "biological_process" = "GOBP",
+                  "molecular_function" = "GOMF", "cellular_component" = "GOCC"))
+                  } else {return("")}}, FUN.VALUE = character(1))
 
-    goTerms <- cbind(goTerms, goDomains)
-    goTerms <- goTerms[-which(goDomains == ""), ]
-    rownames(goTerms) <- goTerms[, 1]
-    goTerms <- goTerms[intersect(union(
-        goPlusMatrixEdges[, 1], goPlusMatrixEdges[, 3]), rownames(goTerms)), ]
-    indexGOTerms <- 0
+  goTerms <- cbind(goTerms, goDomains)
+  goTerms <- goTerms[-which(goDomains == ""), ]
+  rownames(goTerms) <- goTerms[, 1]
+  goTerms <- goTerms[intersect(union(
+    goPlusMatrixEdges[, 1], goPlusMatrixEdges[, 3]), rownames(goTerms)), ]
+  indexGOTerms <- 0
 
-    for (i in seq_len(length(codeRelations))) {
-        goRelationLength <- length(goPlusEdges[[i]]) / 3
-        indexGOTerms <- seq.int(max(indexGOTerms) + 1,
+  for (i in seq_len(length(codeRelations))) {
+    goRelationLength <- length(goPlusEdges[[i]]) / 3
+    indexGOTerms <- seq.int(max(indexGOTerms) + 1,
                             goRelationLength + max(indexGOTerms))
-        goPlusMatrixEdges[indexGOTerms, 4] <- vapply(goPlusEdges[[i]][
-            seq_len(goRelationLength)], FUN = function(x, y) {y[x, 2]},
-            y = goTerms, FUN.VALUE = character(1))
-        if (i == 1) {
-            goPlusMatrixEdges[indexGOTerms, 5] <-
-                goPlusMatrixEdges[indexGOTerms, 4]
-        } else {
-        goPlusMatrixEdges[indexGOTerms, 5] <- vapply( goPlusEdges[[i]][
-            seq.int(2 * goRelationLength + 1, 3 * goRelationLength)],
-            FUN = function(x, y) {y[x, 2]}, y = goTerms,
-            FUN.VALUE = character(1))
-        }
-        goPlusMatrixEdges[indexGOTerms, 6] <- paste(
-            goPlusMatrixEdges[indexGOTerms, 4],
-            goPlusMatrixEdges[indexGOTerms, 5], sep = "-")
+    goPlusMatrixEdges[indexGOTerms, 4] <- vapply(goPlusEdges[[i]][
+      seq_len(goRelationLength)], FUN = function(x, y) {y[x, 2]},
+      y = goTerms, FUN.VALUE = character(1))
+    if (i == 1) {
+      goPlusMatrixEdges[indexGOTerms, 5] <-
+        goPlusMatrixEdges[indexGOTerms, 4]
+    } else {
+      goPlusMatrixEdges[indexGOTerms, 5] <- vapply( goPlusEdges[[i]][
+        seq.int(2 * goRelationLength + 1, 3 * goRelationLength)],
+        FUN = function(x, y) {y[x, 2]}, y = goTerms,
+        FUN.VALUE = character(1))
     }
+    goPlusMatrixEdges[indexGOTerms, 6] <- paste(
+      goPlusMatrixEdges[indexGOTerms, 4],
+      goPlusMatrixEdges[indexGOTerms, 5], sep = "-")
+  }
 
-    colnames(goPlusMatrixEdges) <- c("Son", "Relationship", "Father",
-                                    "Domain_Son", "Domain_Father", "Domains")
-    return(goPlusMatrixEdges)
+  colnames(goPlusMatrixEdges) <- c("Son", "Relationship", "Father",
+                                   "Domain_Son", "Domain_Father", "Domains")
+  return(goPlusMatrixEdges)
 }
 
 .readOntology <- function(file, nameOnto, relationshipsOntology) {
-    minimal <- TRUE
-    goTermRegexp <- "^\\[(Term|Typedef|Instance)\\]"
-    tagRegexp <- "^(relationship: )?([^ \t]*[^:]):?\\s+(.+)"
-    rawLines <- readLines(file)
-    m <- regexpr(text = rawLines, pattern = "^([^!{]+[^!{ \t])")
-    lines <- regmatches(x = rawLines, m = m)
-    termLines <- grep(pattern = goTermRegexp, x = lines)
-    if (length(termLines) == 0) {
-        stop("No terms detected in the Ontology")}
-    taggedLines <- grep(pattern = tagRegexp, x = lines)
-    tagMatches <- regmatches(
-        x = lines[taggedLines], regexec(text = lines[taggedLines],
+  minimal <- FALSE
+  goTermRegexp <- "^\\[(Term|Typedef|Instance)\\]"
+  tagRegexp <- "^(relationship: |intersection_of: )?([^ \t]*[^:]):?\\s+(.+)"
+  rawLines <- readLines(file)
+  m <- regexpr(text = rawLines, pattern = "^([^!{]+[^!{ \t])")
+  lines <- regmatches(x = rawLines, m = m)
+  termLines <- grep(pattern = goTermRegexp, x = lines)
+  if (length(termLines) == 0) {
+    stop("No terms detected in the Ontology")}
+  taggedLines <- grep(pattern = tagRegexp, x = lines)
+  tagMatches <- regmatches(
+    x = lines[taggedLines], regexec(text = lines[taggedLines],
                                     pattern = tagRegexp))
-    tags <- vapply(tagMatches, "[", 3, FUN.VALUE = character(1))
-    values <- vapply(tagMatches, "[", 4, FUN.VALUE = character(1))
-    allTagTypes <- unique(tags)
-    useTags <- if (minimal) {
-        intersect(c("id", "name", "is_obsolete"), allTagTypes)
-    } else {allTagTypes}
-    propagateLines <- which(tags %in% relationshipsOntology)
-    parents <- unname(lapply(FUN = unique, split(
-        values[propagateLines], cut(taggedLines[propagateLines],
-                breaks = c(termLines, Inf), labels = seq(length(termLines))))))
-    tagLines <- which(tags %in% useTags)
-    properties <- mapply(SIMPLIFY = FALSE, FUN = function(vals, lns) {
-        unname(split(vals, cut(lns, breaks = c(termLines, Inf), labels =
-                seq(length(termLines)))))}, split(values[tagLines],
-                tags[tagLines]), split(taggedLines[tagLines], tags[tagLines]))
-    simplify <- intersect(names(properties), c("id", "name", "def", "comment",
-                        "is_obsolete", "created_by", "creation_date"))
-    properties[simplify] <- lapply(properties[simplify], function(lst) {
-        vapply(lst, "[", 1, FUN.VALUE = character(1))})
-    names(properties) <- gsub(x = names(properties), pattern =
-                "^((parents)|(children)|(ancestors))$", replacement = "\\1_OBO")
-    do.call(what = .ontologyIndex, c(list(ontology = nameOnto ,version = substr(
-        lines[seq(termLines[1] - 1)], 1, 1000), parents = parents,
-        id = properties[["id"]], name = properties[["name"]],
-        obsolete = if ("is_obsolete" %in% names(properties)) {
-            (!is.na(properties[["is_obsolete"]])) &
-            properties[["is_obsolete"]] == "true"
-        } else {rep(FALSE, length(properties[["id"]]))}), properties[
-            -which(names(properties) %in% c("id", "name", "is_obsolete"))]))
-    }
+  tags <- vapply(tagMatches, "[", 3, FUN.VALUE = character(1))
+  values <- vapply(tagMatches, "[", 4, FUN.VALUE = character(1))
+  allTagTypes <- unique(tags)
+  useTags <- if (minimal) {
+    intersect(c("id", "name", "is_obsolete"), allTagTypes)
+  } else {allTagTypes}
+  propagateLines <- which(tags %in% relationshipsOntology)
+  parents <- unname(lapply(FUN = unique, split(
+    values[propagateLines], cut(taggedLines[propagateLines],
+                                breaks = c(termLines, Inf),
+                                labels = seq(length(termLines))))))
+  tagLines <- which(tags %in% useTags)
+  properties <- mapply(SIMPLIFY = FALSE, FUN = function(vals, lns) {
+    unname(split(vals, cut(lns, breaks = c(termLines, Inf), labels =
+           seq(length(termLines)))))}, split(values[tagLines],
+           tags[tagLines]), split(taggedLines[tagLines], tags[tagLines]))
+  simplify <- intersect(names(properties), c("id", "name", "def", "comment",
+               "is_obsolete", "created_by", "creation_date"))
+  properties[simplify] <- lapply(properties[simplify], function(lst) {
+    #   properties <- lapply(properties[simplify], function(lst) {
+    vapply(lst, "[", 1, FUN.VALUE = character(1))})
+  names(properties) <- gsub(x = names(properties), pattern =
+                       "^((parents)|(children)|(ancestors))$",
+                       replacement = "\\1_OBO")
+  simplify <- intersect(names(properties), c("id", "name", "is_obsolete",
+                                             relationshipsOntology))
+  properties <- properties[simplify]
+  do.call(what = .ontologyIndex, c(list(ontology = "PO", version = substr(
+    lines[seq(termLines[1] - 1)], 1, 1000), parents = parents,
+    id = properties[["id"]], name = properties[["name"]],
+    obsolete = if ("is_obsolete" %in% names(properties)) {
+      (!is.na(properties[["is_obsolete"]])) &
+        properties[["is_obsolete"]] == "true"
+    } else {rep(FALSE, length(properties[["id"]]))}, ontoRelation=
+      properties[intersect(relationshipsOntology, names(properties))]),
+    properties[  -which(names(properties) %in% c("id", "name", "is_obsolete",
+                                                 relationshipsOntology))]))
+}
 
 .strAncsFromPars <- function(id, pars, chld) {
-    stopifnot(all(vapply(list(pars, chld), function(x) {
-        is.null(names(x)) | identical(names(x), id)}, FUN.VALUE = logical(1))))
-    int.pars <- c(split(as.integer(
-            factor(unlist(use.names = FALSE, pars), levels = id)), unlist(
-            use.names = FALSE, mapply(SIMPLIFY = FALSE, FUN = rep, id, vapply(
-            pars, length, FUN.VALUE = 0L)))), setNames(nm = setdiff(id, unlist(
-            use.names = FALSE, pars)), rep(list(integer(0)), length(
+  stopifnot(all(vapply(list(pars, chld), function(x) {
+    is.null(names(x)) | identical(names(x), id)}, FUN.VALUE = logical(1))))
+  int.pars <- c(split(as.integer(
+    factor(unlist(use.names = FALSE, pars), levels = id)), unlist(
+      use.names = FALSE, mapply(SIMPLIFY = FALSE, FUN = rep, id, vapply(
+        pars, length, FUN.VALUE = 0L)))), setNames(nm = setdiff(id, unlist(
+          use.names = FALSE, pars)), rep(list(integer(0)), length(
             setdiff(id, unlist(use.names = FALSE, pars))))))[id]
-    int.chld <- c(split(as.integer( factor(unlist(use.names = FALSE, chld),
-                    levels = id)), unlist(use.names = FALSE, mapply(
-                    SIMPLIFY = FALSE, FUN = rep, id, vapply(chld, length,
-                    FUN.VALUE = 0L)))), setNames(nm = setdiff(id,
-                    unlist(use.names = FALSE, chld)), rep(list(integer(0)),
-                    length(setdiff(id, unlist(use.names = FALSE, chld))))))[id]
-    setNames(nm = id, lapply(.ancsFromPars(int.pars, int.chld),
-                            function(x) id[x]))
+  int.chld <- c(split(as.integer( factor(unlist(use.names = FALSE, chld),
+              levels = id)), unlist(use.names = FALSE, mapply(
+              SIMPLIFY = FALSE, FUN = rep, id, vapply(chld, length,
+              FUN.VALUE = 0L)))), setNames(nm = setdiff(id,
+                                                                                                                             unlist(use.names = FALSE, chld)), rep(list(integer(0)),
+                                                                                                                                                                   length(setdiff(id, unlist(use.names = FALSE, chld))))))[id]
+  setNames(nm = id, lapply(.ancsFromPars(int.pars, int.chld),
+                           function(x) id[x]))
 }
 
 .ancsFromPars <- function(pars, chld) {
-    ancs <- as.list(seq(length(pars)))
-    done <- vapply(pars, function(x) length(x) == 0, FUN.VALUE = logical(1))
-    cands <- which(done)
-    new.done <- seq_len(length(cands))
-    while (!all(done)) {
-        cands <- unique(unlist(use.names = FALSE, chld[cands[new.done]]))
-        v <- vapply(pars[cands], function(x) all(done[x]),
+  ancs <- as.list(seq(length(pars)))
+  done <- vapply(pars, function(x) length(x) == 0, FUN.VALUE = logical(1))
+  cands <- which(done)
+  new.done <- seq_len(length(cands))
+  while (!all(done)) {
+    cands <- unique(unlist(use.names = FALSE, chld[cands[new.done]]))
+    v <- vapply(pars[cands], function(x) all(done[x]),
                 FUN.VALUE = logical(1))
-        if (!is.logical(v)) {
-        stop("Can't get ancestors for items ",
-            paste0(collapse = ", ", which(!done)))}
-        new.done <- which(v)
-        done[cands[new.done]] <- TRUE
-        ancs[cands[new.done]] <- mapply(
-        SIMPLIFY = FALSE, FUN = c, lapply(cands[new.done], function(x) {
+    if (!is.logical(v)) {
+      stop("Can't get ancestors for items ",
+           paste0(collapse = ", ", which(!done)))}
+    new.done <- which(v)
+    done[cands[new.done]] <- TRUE
+    ancs[cands[new.done]] <- mapply(
+      SIMPLIFY = FALSE, FUN = c, lapply(cands[new.done], function(x) {
         unique(unlist(use.names = FALSE, ancs[pars[[x]]]))}), cands[new.done])
-    }
-    ancs
+  }
+  ancs
 }
 
 .ontologyIndex <- function(parents, id = names(parents), name = id,
-                        obsolete = setNames(nm = id, rep(FALSE, length(id))),
-                        version = NULL, ontology = "GO") {
-    if (is.null(id)) {
-        stop("Must give non-NULL term IDs: either as 'id' argument or as the
+                           obsolete = setNames(nm = id, rep(FALSE, length(id))),
+                           version = NULL, ontology = "GO", ontoRelation) {
+  if (is.null(id)) {
+    stop("Must give non-NULL term IDs: either as 'id' argument or as the
             names of the 'parents' argument")
-    }
-    if (!is.character(id)) {
-        stop("'id' argument must be of class 'character'")
-    }
-    if (!((is.null(names(parents)) & length(parents) == length(id)) |
+  }
+  if (!is.character(id)) {
+    stop("'id' argument must be of class 'character'")
+  }
+  if (!((is.null(names(parents)) & length(parents) == length(id)) |
         identical(names(parents), id))) {
-        stop("`parents` argument must have names attribute identical to `id`
+    stop("`parents` argument must have names attribute identical to `id`
         argument or be the same length")
-    }
-    missing_terms <- setdiff(unlist(use.names = FALSE, parents), id)
-    if (length(missing_terms) > 0) {
+  }
+  missing_terms <- setdiff(unlist(use.names = FALSE, parents), id)
+  if (length(missing_terms) > 0) {
     if (ontology == "GO"){
-        warning(paste0("Some parent terms not found: ",paste0(collapse = ", ",
-                missing_terms[seq(min(length(missing_terms), 3))]),
-                if (length(missing_terms) > 3) {
-                    paste0(" (", length(missing_terms) - 3, " more)")
-                    } else {""}))}
+      warning(paste0("Some parent terms not found: ",paste0(collapse = ", ",
+              missing_terms[seq(min(length(missing_terms), 3))]),
+                     if (length(missing_terms) > 3) {
+                       paste0(" (", length(missing_terms) - 3, " more)")
+                     } else {""}))}
     parents <- lapply(parents, intersect, id)
-    }
-    children <- c(lapply(FUN = as.character, X = split(unlist(
-        use.names = FALSE, rep(id, times = vapply(parents, FUN = length,
-        FUN.VALUE = 0L))), unlist(use.names = FALSE, parents))),
-        setNames(nm = setdiff(id, unlist(use.names = FALSE, parents)),
-                rep(list(character(0)), length(setdiff(id,
-                unlist(use.names = FALSE, parents))))))[id]
-        structure(lapply(FUN = setNames, nm = id, X = list(id = id, name = name,
-            parents = parents, children = children,
-            ancestors = .strAncsFromPars(id, unname(parents), unname(children)),
-            obsolete = obsolete)), version = version)
+  }
+  children <- c(lapply(FUN = as.character, X = split(unlist(
+    use.names = FALSE, rep(id, times = vapply(parents, FUN = length,
+                FUN.VALUE = 0L))), unlist(use.names = FALSE, parents))),
+    setNames(nm = setdiff(id, unlist(use.names = FALSE, parents)),
+             rep(list(character(0)), length(setdiff(id,
+              unlist(use.names = FALSE, parents))))))[id]
+  ontoBase <- structure(lapply(FUN = setNames, nm = id, X = list(id = id,
+              name = name, parents = parents, children = children,
+              ancestors = .strAncsFromPars(id, unname(parents),
+              unname(children)), obsolete = obsolete)), version = version)
+  ontoBase <- c(ontoBase, ontoRelation)
+  return(ontoBase)
 }
 
 .createTableRef <- function(domains){
-    if (domains == "PO"){
-        ontoPlusRef <- matrix(c("","part_of","", "GOCC", "PO", "GOCC-PO"), 16,
-                                6, byrow = TRUE)
+  if (domains == "PO"){
+    ontoPlusRef <- matrix(c("","part_of","", "GOCC", "PO", "GOCC-PO"), 16,
+                          6, byrow = TRUE)
     ontoPlusRef[, 1] <-
-        c("GO:0090406", "GO:0043667", "GO:0090404", "GO:0043673", "GO:0048226",
+      c("GO:0090406", "GO:0043667", "GO:0090404", "GO:0043673", "GO:0048226",
         "GO:0043670", "GO:0043671", "GO:0043669", "GO:0043672", "GO:0043676",
         "GO:0043668", "GO:0043078", "GO:0043680", "GO:0043678", "GO:0035619",
         "GO:0031143")
     ontoPlusRef[, 3] <-
-        c("PO:0025195", "PO:0025281", "PO:0025195", "PO:0025195", "PO:0025281",
+      c("PO:0025195", "PO:0025281", "PO:0025195", "PO:0025195", "PO:0025281",
         "PO:0025281", "PO:0025281", "PO:0025281", "PO:0025281", "PO:0025281",
         "PO:0025281", "PO:0009089", "PO:0000078", "PO:0025281", "PO:0000256",
         "PO:0030055")
     ontoPlusRef[c(12, 13, 15, 16), 2] <- c("located_in", "develops_from",
-                                            "develops_from", "participates_in")
-    }
-    if (domains == "ZFA"){
-        ontoPlusRef <- matrix(c("","is_a","", "GOCC", "ZFA", "GOCC-ZFA"), 4, 6,
-                                byrow = TRUE)
-        ontoPlusRef[, 1] <-
-            c("GO:0060417", "GO:0044301", "GO:1990032", "GO:0031633")
-        ontoPlusRef[, 3] <-
-            c("ZFA:0000084", "ZFA:0001711", "ZFA:0001713", "ZFA:0009198")
-    }
-    if (domains == "HPO"){
-        ontoPlusRef <- matrix(c("", "characteristic_of", "", "GOBP", "HPO",
+                                           "develops_from", "participates_in")
+  }
+  if (domains == "ZFA"){
+    ontoPlusRef <- matrix(c("","is_a","", "GOCC", "ZFA", "GOCC-ZFA"), 4, 6,
+                          byrow = TRUE)
+    ontoPlusRef[, 1] <-
+      c("GO:0060417", "GO:0044301", "GO:1990032", "GO:0031633")
+    ontoPlusRef[, 3] <-
+      c("ZFA:0000084", "ZFA:0001711", "ZFA:0001713", "ZFA:0009198")
+  }
+  if (domains == "HPO"){
+    ontoPlusRef <- matrix(c("", "characteristic_of", "", "GOBP", "HPO",
                             "GOBP-HPO"), 457, 6, byrow = TRUE)
-        ontoPlusRef[, 1] <-
-        c("GO:0006954", "GO:0006954", "GO:0060073", "GO:0006954", "GO:0042703",
+    ontoPlusRef[, 1] <-
+      c("GO:0006954", "GO:0006954", "GO:0060073", "GO:0006954", "GO:0042703",
         "GO:0042703", "GO:0006954", "GO:0006954", "GO:0006954", "GO:0007605",
         "GO:0007605", "GO:0002526", "GO:0006954", "GO:0002544", "GO:0006954",
         "GO:0055127", "GO:0007608", "GO:0006954", "GO:0007601", "GO:0007601",
@@ -336,8 +346,8 @@
         "GO:0046541", "GO:0043473", "GO:0042373", "GO:0001503", "GO:0043084",
         "GO:0000819", "GO:0043473", "GO:0043473", "GO:0042110", "GO:0001503",
         "GO:0006954", "GO:0044307")
-        ontoPlusRef[, 3] <-
-        c("HP:0000024", "HP:0000031", "HP:0000103", "HP:0000123", "HP:0000140",
+    ontoPlusRef[, 3] <-
+      c("HP:0000024", "HP:0000031", "HP:0000103", "HP:0000123", "HP:0000140",
         "HP:0000141", "HP:0000230", "HP:0000246", "HP:0000265", "HP:0000364",
         "HP:0000365", "HP:0000371", "HP:0000388", "HP:0000389", "HP:0000403",
         "HP:0000405", "HP:0000458", "HP:0000498", "HP:0000504", "HP:0000505",
@@ -430,202 +440,204 @@
         "HP:0200024", "HP:0200064", "HP:0200098", "HP:0410035", "HP:0430013",
         "HP:0500006", "HP:0500032")
     ontoPlusRef[c(10, 37, 63, 64, 81, 83, 85, 106, 107, 141, 179, 181, 220,
-                    358, 384, 385, 417, 435), 2] <- "characteristic_of_part_of"
+                  358, 384, 385, 417, 435), 2] <- "characteristic_of_part_of"
     ontoPlusRef[c(15, 33, 34, 49, 66, 91, 258, 361, 418), 2] <- "towards"
     ontoPlusRef[c(25, 58, 112, 142, 405, 407), 2] <- "equivalentTo"
     ontoPlusRef[55, 2] <- "existence_overlaps"
     ontoPlusRef[c(105, 120, 127, 140, 373), 2] <- "capable_of"
     ontoPlusRef[c(139, 249), 2] <- "part_of"
     ontoPlusRef[c(158, 105, 113, 114, 120, 127, 137, 140, 245, 373), 4] <-
-        "GOMF"
+      "GOMF"
     ontoPlusRef[c(158, 105, 113, 114, 120, 127, 137, 140, 245, 373), 6] <-
-        "GOMF-HPO"
+      "GOMF-HPO"
     ontoPlusRef[c(31, 50, 92, 103, 115, 117, 118, 121, 122, 123, 128, 129, 130,
-                132, 134, 135, 139, 143, 160, 161, 200, 208, 218, 219, 222,
-                249, 251, 252, 268, 282, 283, 335, 351, 356, 357, 358, 361,
-                367, 395, 396, 408, 409, 410, 414, 415, 425, 457), 4] <- "GOCC"
+                  132, 134, 135, 139, 143, 160, 161, 200, 208, 218, 219, 222,
+                  249, 251, 252, 268, 282, 283, 335, 351, 356, 357, 358, 361,
+                  367, 395, 396, 408, 409, 410, 414, 415, 425, 457), 4] <- "GOCC"
     ontoPlusRef[c(31, 50, 92, 103, 115, 117, 118, 121, 122, 123, 128, 129, 130,
-                132, 134, 135, 139, 143, 160, 161, 200, 208, 218, 219, 222,
-                249, 251, 252, 268, 282, 283, 335, 351, 356, 357, 358, 361,
-                367, 395, 396, 408, 409, 410, 414, 415, 425, 457), 6] <-
-                "GOCC-HPO"
-    }
-    colnames(ontoPlusRef) <- c("Son", "Relationship", "Father", "Domain_Son",
-                                "Domain_Father", "Domains")
-    return(ontoPlusRef)
+                  132, 134, 135, 139, 143, 160, 161, 200, 208, 218, 219, 222,
+                  249, 251, 252, 268, 282, 283, 335, 351, 356, 357, 358, 361,
+                  367, 395, 396, 408, 409, 410, 414, 415, 425, 457), 6] <-
+      "GOCC-HPO"
+  }
+  colnames(ontoPlusRef) <- c("Son", "Relationship", "Father", "Domain_Son",
+                             "Domain_Father", "Domains")
+  return(ontoPlusRef)
 }
 
 .createTableInference <- function(nameRelations, domains = "GO"){
-    tableInference <- data.frame(unlist(lapply(nameRelations,
-                        FUN = function(x, y) {rep(x, y)},
-                        y = length(nameRelations))),
-                        rep(nameRelations, length(nameRelations)), 0)
-    colnames(tableInference) <- c("fatherRelation", "grandfatherRelation", "h")
-    if (domains == "GO"){
-        tableInference[c(seq_len(11), 17, 18, seq.int(24, 26),33, 34, 41, 42,
-                        49, 50, 57, seq.int(60, 70), seq.int(73, 80)), 3] <- 1
-    }
-    if (domains == "PO"){
-        tableInference[c(seq_len(12), 16, 17, 21, 22),3] <- 1
-        tableInference <- tableInference[-c(1,2,6,7),]
-    }
-    if (domains == "ZFA"){
-        tableInference[c(seq_len(12), 16, 17, 21, 22),3] <- 1
-        tableInference <- tableInference[-c(1,2,6,7),]
-    }
-    if (domains == "HPO"){
-        tableInference <- tableInference[-c(1, 2, 3, 7, 9, 10, 11, 15, 17, 18,
-                                            19, 23, 49, 50, 51, 55),]
-        tableInference[c(seq_len(4), 10, 11, 12, 13, 21, 23, 29, 31, 37, 38, 39,
-                                            40, 47, 43), 3] <- 1
-    }
-    return(tableInference)
+  tableInference <- data.frame(unlist(lapply(nameRelations,
+                                             FUN = function(x, y) {rep(x, y)},
+                                             y = length(nameRelations))),
+                               rep(nameRelations, length(nameRelations)), 0)
+  colnames(tableInference) <- c("fatherRelation", "grandfatherRelation", "h")
+  if (domains == "GO"){
+    tableInference[c(seq_len(11), 17, 18, seq.int(24, 26),33, 34, 41, 42,
+                     49, 50, 57, seq.int(60, 70), seq.int(73, 80)), 3] <- 1
+  }
+  if (domains == "PO"){
+    tableInference[c(seq_len(12), 16, 17, 21, 22),3] <- 1
+    tableInference <- tableInference[-c(1,2,6,7),]
+  }
+  if (domains == "ZFA"){
+    tableInference[c(seq_len(12), 16, 17, 21, 22),3] <- 1
+    tableInference <- tableInference[-c(1,2,6,7),]
+  }
+  if (domains == "HPO"){
+    tableInference <- tableInference[-c(1, 2, 3, 7, 9, 10, 11, 15, 17, 18,
+                                        19, 23, 49, 50, 51, 55),]
+    tableInference[c(seq_len(4), 10, 11, 12, 13, 21, 23, 29, 31, 37, 38, 39,
+                     40, 47, 43), 3] <- 1
+  }
+  return(tableInference)
 }
 
 preCoreFG <- function(ontoTerms, domains = "GO") {
-    domains <- switch(domains, "GOCC"="GO", "GOBP"="GO", "GOMF"="GO","GO"="GO",
+  domains <- switch(domains, "GOCC"="GO", "GOBP"="GO", "GOMF"="GO","GO"="GO",
                     "GOCC-PO"="PO","GO-PO"="PO", "GOCC-ZFA"="ZFA",
                     "GO-ZFA"="ZFA", "GOCC-HPO"="HPO", "GOMF-HPO"="HPO",
                     "GOBP-HPO"="HPO", "GO-HPO"="HPO",
                     stop("INCORRECT DOMAIN; \"", domains, "\", ",
-                        "SELECTED! --> INVALID OPTION"))
+                         "SELECTED! --> INVALID OPTION"))
 
-    ontologyPlusRef <- .goPlusInfo()
-    nameRelations <- c("is_a", "part_of", "occurs_in", "regulates",
-                    "negatively_regulates", "positively_regulates",
-                    "capable_of", "capable_of_part_of", "equivalentTo")
-    url <- .getCache("http://purl.obolibrary.org/obo/go.obo", "goBasic")
-    if (length(url)==0) stop("Neither internet connection nor cached GO data")
-    infoOntologies <- .readOntology(url, "GO", nameRelations)
-    tableInference <- .createTableInference(nameRelations, "GO")
+  ontologyPlusRef <- .goPlusInfo()
+  nameRelations <- c("is_a", "part_of", "occurs_in", "regulates",
+                     "negatively_regulates", "positively_regulates",
+                     "capable_of", "capable_of_part_of", "equivalentTo")
+  url <- .getCache("http://purl.obolibrary.org/obo/go.obo", "goBasic")
+  if (length(url)==0) stop("Neither internet connection nor cached GO data")
+  infoOntologies <- .readOntology(url, "GO", nameRelations)
+  tableInference <- .createTableInference(nameRelations, "GO")
 
-    if (domains=="PO"){
-        newNameRelations <- c("is_a", "part_of", "participates_in",
-                            "develops_from", "located_in")
-        url <- .getCache("http://purl.obolibrary.org/obo/po.obo", "poBasic")
-        if (length(url)==0)
-            stop("Neither internet connection nor cached PO data")
-        newOntology <- .readOntology(url, domains, newNameRelations)
-    }
+  if (domains=="PO"){
+    newNameRelations <- c("is_a", "part_of", "participates_in",
+                          "develops_from", "located_in")
+    url <- .getCache("http://purl.obolibrary.org/obo/po.obo", "poBasic")
+    if (length(url)==0)
+      stop("Neither internet connection nor cached PO data")
+    newOntology <- .readOntology(url, domains, newNameRelations)
+  }
 
-    if (domains=="ZFA"){
-        newNameRelations <- c("is_a", "part_of", "overlaps", "develops_from",
-                            "continuous_with")
-        url <- .getCache("http://purl.obolibrary.org/obo/zfa.obo", "zfaBasic")
-        if (length(url)==0)
-            stop("Neither internet connection nor cached ZFA data")
-        newOntology <- .readOntology(url, domains, newNameRelations)
-    }
+  if (domains=="ZFA"){
+    newNameRelations <- c("is_a", "part_of", "overlaps", "develops_from",
+                          "continuous_with")
+    url <- .getCache("http://purl.obolibrary.org/obo/zfa.obo", "zfaBasic")
+    if (length(url)==0)
+      stop("Neither internet connection nor cached ZFA data")
+    newOntology <- .readOntology(url, domains, newNameRelations)
+  }
 
-    if (domains=="HPO"){
-        newNameRelations <- c("is_a")
-        url <- .getCache("http://purl.obolibrary.org/obo/hp.obo", "hpoBasic")
-        if (length(url)==0)
-            stop("Neither internet connection nor cached HPO data")
-        newOntology <- .readOntology(url, domains, newNameRelations)
-        newNameRelations <- c("is_a", "capable_of", "part_of", "towards",
-                        "characteristic_of", "characteristic_of_part_of",
-                        "equivalentTo", "existence_overlaps")}
+  if (domains=="HPO"){
+    newNameRelations <- c("is_a")
+    url <- .getCache("http://purl.obolibrary.org/obo/hp.obo", "hpoBasic")
+    if (length(url)==0)
+      stop("Neither internet connection nor cached HPO data")
+    newOntology <- .readOntology(url, domains, newNameRelations)
+    newNameRelations <- c("is_a", "capable_of", "part_of", "towards",
+                          "characteristic_of", "characteristic_of_part_of",
+                          "equivalentTo", "existence_overlaps")}
 
-    if (domains!="GO"){
-        addTableInference <- .createTableInference(newNameRelations, domains)
-        ontologyPlusRef <- rbind(ontologyPlusRef, .createTableRef(domains))
-        for (i in seq_len(length(infoOntologies))) infoOntologies[[i]] <-
-            c(infoOntologies[[i]], newOntology[[i]])
-        tableInference <- rbind(tableInference, addTableInference)
-        rm(newOntology, addTableInference)}
+  if (domains!="GO"){
+    addTableInference <- .createTableInference(newNameRelations, domains)
+    ontologyPlusRef <- rbind(ontologyPlusRef, .createTableRef(domains))
+    for (i in seq_len(length(infoOntologies))) infoOntologies[[i]] <-
+      c(infoOntologies[[i]], newOntology[[i]])
+    tableInference <- rbind(tableInference, addTableInference)
+    rm(newOntology, addTableInference)}
 
-    allTerms <- c()
-    for (i in seq_len(length(ontoTerms))){
-        if (!is.na(infoOntologies$id[ontoTerms[i]]) &&
-            infoOntologies$obsolete[ontoTerms[i]][[1]] == FALSE) allTerms <-
-            unique(union(allTerms, infoOntologies$ancestors[ontoTerms[i]][[1]]))
-    }
+  allTerms <- c()
+  for (i in seq_len(length(ontoTerms))){
+    if (!is.na(infoOntologies$id[ontoTerms[i]]) &&
+        infoOntologies$obsolete[ontoTerms[i]][[1]] == FALSE) allTerms <-
+        unique(union(allTerms, infoOntologies$ancestors[ontoTerms[i]][[1]]))
+  }
 
-    indexOnto <- c()
-    for (i in seq_len(length(allTerms))){
-        indexOnto <- union(indexOnto, ontologyPlusRef[
-            which(ontologyPlusRef[,1] == allTerms[i]),3])
-    }
-    for (i in seq_len(length(indexOnto))){
-        if (!is.na(infoOntologies$id[indexOnto[i]]) &&
-            infoOntologies$obsolete[indexOnto[i]][[1]] == FALSE) allTerms <-
-            unique(union(allTerms, infoOntologies$ancestors[indexOnto[i]][[1]]))
-    }
+  indexOnto <- c()
+  for (i in seq_len(length(allTerms))){
+    indexOnto <- union(indexOnto, ontologyPlusRef[
+      which(ontologyPlusRef[,1] == allTerms[i]),3])
+  }
+  for (i in seq_len(length(indexOnto))){
+    if (!is.na(infoOntologies$id[indexOnto[i]]) &&
+        infoOntologies$obsolete[indexOnto[i]][[1]] == FALSE) allTerms <-
+        unique(union(allTerms, infoOntologies$ancestors[indexOnto[i]][[1]]))
+  }
 
-    myTerms <- sort(c(allTerms, "Ontology:FES"))
-    matrixOntology <- matrix(0, length(myTerms), length(myTerms))
-    colnames(matrixOntology) <- rownames(matrixOntology) <- myTerms
-    for (i in seq_len(length(myTerms))) {
-        ontologyNodes <- infoOntologies$parents[[myTerms[i]]]
-        indexTerms <- which(ontologyPlusRef[, 1] == myTerms[i])
-        if (length(ontologyNodes) > 0) {
-            for (j in seq_len(length(ontologyNodes))) {
-                if (ontologyNodes[j] %in% myTerms) {
-                    matrixOntology[ontologyNodes[j], i] <- 1
-                }
-            }
-        if (length(indexTerms) > 0) {
-            for (j in seq_len(length(indexTerms))) {
-                if (ontologyPlusRef[indexTerms[j], 4] !=
-                    ontologyPlusRef[indexTerms[j], 5]) {
-                        if (length(which(myTerms ==
-                            ontologyPlusRef[indexTerms[j], 3])) == 1) {
-                            matrixOntology[ontologyPlusRef[indexTerms[j], 3],
-                            ontologyPlusRef[indexTerms[j], 1]] <- 1
-                            relationships <- ontologyPlusRef[
-                            which(ontologyPlusRef[indexTerms[j], 3] ==
-                            ontologyPlusRef[, 1]), ]
-                        if (is.matrix(relationships)) {
-                            for (k in seq_len(dim(relationships)[1])) {
-                                hValue <- tableInference[intersect(
-                                    which(tableInference[, 2] ==
-                                    relationships[k, 2]),
-                                    which(tableInference[, 1] ==
-                                    ontologyPlusRef[indexTerms[j], 2])), 3]
-                                if (hValue == 0) {
-                                    matrixOntology[relationships[k, 1],
-                                    ontologyPlusRef[indexTerms[j], 3]] <- 0
-                                }
-                            }
-                    } else {
-                    hValue <- tableInference[intersect(
-                        which(tableInference[, 2] == relationships[2]),
-                        which(tableInference[, 1] ==
-                            ontologyPlusRef[indexTerms[j], 2])), 3]
-                    if (hValue == 0) {
-                        matrixOntology[relationships[1],
-                                ontologyPlusRef[indexTerms[j], 3]] <- 0
-                    }}}}
-            }}
+  myTerms <- sort(c(allTerms, "Ontology:FES"))
+  matrixOntology <- matrix(0, length(myTerms), length(myTerms))
+  colnames(matrixOntology) <- rownames(matrixOntology) <- myTerms
+  for (i in seq_len(length(myTerms))) {
+    ontologyNodes <- infoOntologies$parents[[myTerms[i]]]
+    indexTerms <- which(ontologyPlusRef[, 1] == myTerms[i])
+    if (length(ontologyNodes) > 0) {
+      for (j in seq_len(length(ontologyNodes))) {
+        if (ontologyNodes[j] %in% myTerms) {
+          matrixOntology[ontologyNodes[j], i] <- 1
         }
+      }
+      if (length(indexTerms) > 0) {
+        for (j in seq_len(length(indexTerms))) {
+          if (ontologyPlusRef[indexTerms[j], 4] !=
+              ontologyPlusRef[indexTerms[j], 5]) {
+            if (length(which(myTerms ==
+                             ontologyPlusRef[indexTerms[j], 3])) == 1) {
+              matrixOntology[ontologyPlusRef[indexTerms[j], 3],
+                             ontologyPlusRef[indexTerms[j], 1]] <- 1
+              relationships <- ontologyPlusRef[
+                which(ontologyPlusRef[indexTerms[j], 3] ==
+                        ontologyPlusRef[, 1]), ]
+              if (is.matrix(relationships)) {
+                for (k in seq_len(dim(relationships)[1])) {
+                  hValue <- tableInference[intersect(
+                    which(tableInference[, 2] ==
+                            relationships[k, 2]),
+                    which(tableInference[, 1] ==
+                            ontologyPlusRef[indexTerms[j], 2])), 3]
+                  if (hValue == 0) {
+                    matrixOntology[relationships[k, 1],
+                                   ontologyPlusRef[indexTerms[j], 3]] <- 0
+                  }
+                }
+              } else {
+                hValue <- tableInference[intersect(
+                  which(tableInference[, 2] == relationships[2]),
+                  which(tableInference[, 1] ==
+                          ontologyPlusRef[indexTerms[j], 2])), 3]
+                if (hValue == 0) {
+                  matrixOntology[relationships[1],
+                                 ontologyPlusRef[indexTerms[j], 3]] <- 0
+                }}}}
+        }}
     }
+  }
 
-    rootGO <- c("GO:0008150", "GO:0003674", "GO:0005575")
-    rootGO <- intersect(myTerms, rootGO)
+  rootGO <- c("GO:0008150", "GO:0003674", "GO:0005575")
+  rootGO <- intersect(myTerms, rootGO)
 
-    if (domains == "PO") {
-        newRoots <- c()
-        if (length(which(allTerms=="PO:0025131")) > 0) newRoots <- "PO:0025131"
-        if (length(which(allTerms=="PO:0009012")) > 0)
-            newRoots <- c(newRoots, "PO:0009012")
-        matrixOntology["Ontology:FES",  c(rootGO, newRoots)] <- 1
-    }
-    if (domains=="ZFA") {
-        newRoots <- c()
-        if (length(which(allTerms == "ZFA:0100000")) > 0)
-            newRoots <- "ZFA:0100000"
-        matrixOntology["Ontology:FES",  c(rootGO, newRoots)] <- 1
-    }
-    if (domains=="HPO") {
-        newRoots <- c()
-        if (length(which(allTerms == "HP:0000001")) > 0)
-            newRoots <- "HP:0000001"
-        matrixOntology["Ontology:FES",  c(rootGO, newRoots)] <- 1
-    }
-    if (domains == "GO") {
-        matrixOntology["Ontology:FES", rootGO] <- 1
-    }
+  if (domains == "PO") {
+    newRoots <- c()
+    if (length(which(allTerms=="PO:0025131")) > 0) newRoots <- "PO:0025131"
+    if (length(which(allTerms=="PO:0009012")) > 0)
+      newRoots <- c(newRoots, "PO:0009012")
+    matrixOntology["Ontology:FES",  c(rootGO, newRoots)] <- 1
+  }
+  if (domains=="ZFA") {
+    newRoots <- c()
+    if (length(which(allTerms == "ZFA:0100000")) > 0)
+      newRoots <- "ZFA:0100000"
+    matrixOntology["Ontology:FES",  c(rootGO, newRoots)] <- 1
+  }
+  if (domains=="HPO") {
+    newRoots <- c()
+    if (length(which(allTerms == "HP:0000001")) > 0)
+      newRoots <- "HP:0000001"
+    matrixOntology["Ontology:FES",  c(rootGO, newRoots)] <- 1
+  }
+  if (domains == "GO") {
+    matrixOntology["Ontology:FES", rootGO] <- 1
+  }
 
-    return(as(matrixOntology, "graphNEL"))
+  matrixOntology <- matrixOntology[order(rownames(matrixOntology)), ]
+  matrixOntology <- matrixOntology[, order(colnames(matrixOntology))]
+  return(as(matrixOntology, "graphNEL"))
 }
