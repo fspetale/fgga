@@ -187,5 +187,5 @@ fHierarchicalMeasures <- function(target, predicted, graphOnto, cutoff = 0.5){
 }
 
 .hFmeasure<-function(HP, HR){
-    return(2*HP*HR / (HP + HR))
+    if (HP==0 && HR == 0) return (0) else return(2*HP*HR / (HP + HR))
 }
