@@ -131,21 +131,25 @@ fHierarchicalMeasures <- function(target, predicted, graphOnto, cutoff = 0.5){
     leafPred <- leaves(gPred, "out")
     HP <- 0
     nLeafPred <- length(leafPred)
+    nLeafTarget <- length(leafTarget)
     sumPred <- 0
     for (i in seq_len(nLeafPred)){
-        if(leafPred[i] != gRoot){
-            fathersLeaf <- graphOntoProperties[["graphOntoParents"]][[
-                leafPred[i]]]
-        if ((length(fathersLeaf) == 1) && (fathersLeaf == gRoot))
-            parentsPred <- c(gRoot, leafPred[i]) else
-            parentsPred <- graphOntoProperties[["graphOntoAncestors"]][[
-                leafPred[i]]]}
-        else { parentsPred <- gRoot}
-        maxPred <- vapply(leafPred, FUN = function(x, y, z)
-            {length(intersect(z, y[[x]])) / length(z)},
-            y = graphOntoProperties[["graphOntoAncestors"]], z = parentsPred,
-            FUN.VALUE = numeric(1))
-        sumPred <- max(maxPred) + sumPred
+      parentsPred <- graphOntoProperties[["graphOntoParents"]][[
+        leafPred[i]]]
+      maxPred <- array(0,nLeafTarget)
+      for (j in seq_len(nLeafTarget)){
+        if(leafTarget[j] != gRoot){
+          fathersLeaf <- graphOntoProperties[["graphOntoParents"]][[
+            leafTarget[j]]]
+          if ((length(fathersLeaf) == 1) && (fathersLeaf == gRoot))
+            parentsTarget <- c(gRoot, leafTarget[j]) else
+              parentsTarget <- graphOntoProperties[["graphOntoAncestors"]][[
+                leafTarget[j]]]}
+        else parentsTarget <- gRoot
+        maxPred[j] <- length(intersect(parentsPred, parentsTarget)) /
+          length(parentsTarget)
+      }
+      sumPred <- max(maxPred) + sumPred
     }
     HP <- sumPred / nLeafPred
     return(HP)
