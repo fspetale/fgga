@@ -134,20 +134,17 @@ fHierarchicalMeasures <- function(target, predicted, graphOnto, cutoff = 0.5){
     nLeafTarget <- length(leafTarget)
     sumPred <- 0
     for (i in seq_len(nLeafPred)){
-      parentsPred <- graphOntoProperties[["graphOntoParents"]][[
+      parentsPred <- graphOntoProperties[["graphOntoAncestors"]][[
         leafPred[i]]]
       maxPred <- array(0,nLeafTarget)
       for (j in seq_len(nLeafTarget)){
         if(leafTarget[j] != gRoot){
-          fathersLeaf <- graphOntoProperties[["graphOntoParents"]][[
-            leafTarget[j]]]
-          if ((length(fathersLeaf) == 1) && (fathersLeaf == gRoot))
-            parentsTarget <- c(gRoot, leafTarget[j]) else
-              parentsTarget <- graphOntoProperties[["graphOntoAncestors"]][[
-                leafTarget[j]]]}
+          parentsTarget <- graphOntoProperties[["graphOntoAncestors"]][[
+                                              leafTarget[j]]]
+        }
         else parentsTarget <- gRoot
         maxPred[j] <- length(intersect(parentsPred, parentsTarget)) /
-          length(parentsTarget)
+          length(parentsPred)
       }
       sumPred <- max(maxPred) + sumPred
     }
@@ -165,17 +162,14 @@ fHierarchicalMeasures <- function(target, predicted, graphOnto, cutoff = 0.5){
     nLeafTarget <- length(leafTarget)
     sumPred <- 0
     for (i in seq_len(nLeafTarget)){
-        parentsTarget <- graphOntoProperties[["graphOntoParents"]][[
+        parentsTarget <- graphOntoProperties[["graphOntoAncestors"]][[
         leafTarget[i]]]
         maxPred <- array(0,nLeafPred)
         for (j in seq_len(nLeafPred)){
             if(leafPred[j] != gRoot){
-                fathersLeaf <- graphOntoProperties[["graphOntoParents"]][[
-                leafPred[j]]]
-            if ((length(fathersLeaf) == 1) && (fathersLeaf == gRoot))
-                parentsPred <- c(gRoot, leafPred[j]) else
                 parentsPred <- graphOntoProperties[["graphOntoAncestors"]][[
-                leafPred[j]]]}
+                leafPred[j]]]
+                }
         else parentsPred <- gRoot
             maxPred[j] <- length(intersect(parentsPred, parentsTarget)) /
             length(parentsTarget)
