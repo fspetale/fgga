@@ -1,7 +1,7 @@
 Package: fgga
 Type: Package
 Title: Hierarchical ensemble method based on factor graph
-Version: 1.6.0
+Version: 1.7.0
 Date: 2022-07-13
 Authors@R: c(person("Flavio", "Spetale", email = "spetale@cifasis-conicet.gov.ar", role = c("aut", "cre")))
 biocViews: Software, StatisticalMethod, Classification, Network, NetworkInference, SupportVectorMachine, GraphAndNetwork, GO
