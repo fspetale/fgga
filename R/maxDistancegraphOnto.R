@@ -8,7 +8,7 @@ maxDistancegraphOnto <- function(graphOnto){
     gLeaves <- leaves(graphOnto, "out")
     pNodes <- terms
     while(length(pNodes)>0){
-        pathParents <- parents(pNodes[1], graphOnto)
+        pathParents <- parents(pNodes[1], graph_from_graphnel(graphOnto))
         if (length(pNodes) == length(terms)){
             pNodes <- setdiff(terms, gRoot)
             matrixDistgraphOnto[gRoot] <- gRoot

@@ -5,7 +5,9 @@ svmTrain <- function(nodeGraph, tableOntoTerms, dxCharacterized, graphOnto,
     dxCharacterized <- dxCharacterized[order(rownames(dxCharacterized)), ]
     modelSvm_reduce <- c()
     zeroValue <- array(0, 0.1 * dim(dxCharacterized)[2])
-    idAncestor <- ancestors(nodeGraph, graphOnto)
+    #idAncestor <- ancestors(nodeGraph, graphOnto)
+    mygraphGO <- graph_from_graphnel(graphOnto)
+    idAncestor <- ancestralSet(nodeGraph, mygraphGO)
     rootNodes <- c("GO:0008150", "GO:0003674", "GO:0005575", "PO:0025131",
                     "PO:0009012", "ZFA:0100000", "HP:0000001", "Ontology:FES")
     rootNodes <- intersect(idAncestor, rootNodes)

@@ -91,10 +91,11 @@ fHierarchicalMeasures <- function(target, predicted, graphOnto, cutoff = 0.5){
                         graphOntoAncestors = list())
     ontoTerms <- nodes(graphOnto)
     infoGraphBase[["graphOntoParents"]] <- lapply(ontoTerms, FUN = function(x,y)
-        {parents(x,y)}, y=graphOnto)
+        {parents(x,y)}, y=graph_from_graphnel(graphOnto))
     names(infoGraphBase[["graphOntoParents"]]) <- ontoTerms
     infoGraphBase[["graphOntoAncestors"]] <- lapply(ontoTerms,
-                    FUN = function(x,y) {c(ancestors(x,y),x)}, y=graphOnto)
+                    FUN = function(x,y) {ancestralSet(x,y)},
+                    y=graph_from_graphnel(graphOnto))
     names(infoGraphBase[["graphOntoAncestors"]]) <- ontoTerms
 
     nSample <- j <- 0

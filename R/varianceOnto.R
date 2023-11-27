@@ -41,7 +41,9 @@ varianceOnto <- function(tableOntoTerms, dxCharacterized, kFold, graphOnto,
     tableOntoTerms <- tableOntoTerms[-dxFolds[[indexFold]], ]
     dxCharacterized <- dxCharacterized[-dxFolds[[indexFold]], ]
     zeroValues <- array(0, 0.1 * dim(dxCharacterized)[2])
-    ancestorID <- ancestors(nodeOnto, graphOnto)
+    #ancestorID <- ancestors(nodeOnto, graphOnto)
+    mygraphGO <- graph_from_graphnel(graphOnto)
+    ancestorID <- ancestralSet(nodeOnto, mygraphGO)
     rootNodes <- c("GO:0008150", "GO:0003674", "GO:0005575", "PO:0025131",
                     "PO:0009012", "ZFA:0100000", "HP:0000001", "Ontology:FES")
     rootNodes <- intersect(ancestorID, rootNodes)
