@@ -3,7 +3,7 @@ Type: Package
 Title: Hierarchical ensemble method based on factor graph
 Version: 1.11.0
 Date: 2023-11-27
-Authors: c(person("Flavio", "Spetale", email = "spetale@cifasis-conicet.gov.ar", role = c("aut", "cre")))
+Authors@R: c(person("Flavio", "Spetale", email = "spetale@cifasis-conicet.gov.ar", role = c("aut", "cre")))
 biocViews: Software, StatisticalMethod, Classification, Network, NetworkInference, SupportVectorMachine, GraphAndNetwork, GO
 Description: Package that implements the FGGA algorithm. This package provides a hierarchical ensemble method based ob factor graphs for the consistent cross-ontology annotation of protein coding genes. FGGA embodies elements of predicate logic, communication theory, supervised learning and inference in graphical models.
 Depends: R (>= 4.3), RBGL
